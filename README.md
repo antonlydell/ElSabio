@@ -1,6 +1,12 @@
 # ElSabio
 
+
+![PyPI](https://img.shields.io/pypi/v/ElSabio?style=plastic)
+![Python](https://img.shields.io/pypi/pyversions/ElSabio?style=plastic)
+![LICENSE](https://img.shields.io/pypi/l/ElSabio?style=plastic)
+
 *Wisdom from integrated energy data*
+
 
 ElSabio (*el sabio* means *the wise* in Spanish) is **the simple electricity meter data analysis platform**.
 It helps you unlock insights hidden in your meter data. Use it to understand your grid and customers better
@@ -38,3 +44,12 @@ and forecast income with greater accuracy. It also makes it possible to act on g
 ## License
 
 ElSabio is distributed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0-standalone.html).
+
+
+## Installation
+
+ElSabio is available on [PyPI](https://pypi.org/project/ElSabio/) and can be installed with [pip](https://pip.pypa.io/en/stable/).
+
+```bash
+$ pip install ElSabio
+```

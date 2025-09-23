@@ -7,6 +7,7 @@ r"""The database tables of the Tariff Analyzer module."""
 
 # Standard library
 from datetime import date, datetime
+from decimal import Decimal
 from typing import ClassVar
 
 # Third party
@@ -14,7 +15,7 @@ from sqlalchemy import BigInteger, CheckConstraint, Date, ForeignKey, Index, fun
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 # Local
-from .core import Base, ModifiedAndCreatedColumnMixin, Unit
+from .core import Base, ModifiedAndCreatedColumnMixin, MoneyPrice, Ratio, Unit
 
 
 class FacilityType(ModifiedAndCreatedColumnMixin, Base):
@@ -366,9 +367,27 @@ class Tariff(ModifiedAndCreatedColumnMixin, Base):
         The start date the tariff is valid from (inclusive)
         in the configured business timezone of the app.
 
-    validity_end: datetime.date or None
+    validity_end : datetime.date or None
         The end date the tariff is valid until (exclusive)
         in the configured business timezone of the app.
+
+    high_load_period_start : datetime.date or None
+        The start date of the high load period (inclusive)
+        in the configured business timezone of the app.
+
+    high_load_period_end : datetime.date or None
+        The end date of the high load period (exclusive)
+        in the configured business timezone of the app.
+
+    allowed_reactive_over_active_power_cons : decimal.Decimal, default 1.0
+        The ratio of allowed reactive power consumption in relation to active power
+        consumption. The default of 1.0 means that you may consume as much reactive
+        power as you consume active power.
+
+    allowed_reactive_over_active_power_prod : decimal.Decimal, default 1.0
+        The ratio of allowed reactive power production in relation to active power consumption.
+        The default of 1.0 means that you may produce as much reactive power as you consume
+        active power.
 
     description : str or None
         A description of the tariff.
@@ -392,6 +411,8 @@ class Tariff(ModifiedAndCreatedColumnMixin, Base):
         'name',
         'validity_start',
         'validity_end',
+        'high_load_period_start',
+        'high_load_period_end',
         'description',
         'updated_at',
         'updated_by',
@@ -416,6 +437,26 @@ class Tariff(ModifiedAndCreatedColumnMixin, Base):
             'The end date the tariff is valid until (exclusive) '
             'in the configured business timezone of the app.'
         ),
+    )
+    high_load_period_start: Mapped[date | None] = mapped_column(
+        Date,
+        comment=(
+            'The start date of the high load period (inclusive) '
+            'in the configured business timezone of the app.'
+        ),
+    )
+    high_load_period_end: Mapped[date | None] = mapped_column(
+        Date,
+        comment=(
+            'The end date of the high load period (exclusive) '
+            'in the configured business timezone of the app.'
+        ),
+    )
+    allowed_reactive_over_active_power_cons: Mapped[Decimal] = mapped_column(
+        Ratio, server_default=text('1.0')
+    )
+    allowed_reactive_over_active_power_prod: Mapped[int] = mapped_column(
+        Ratio, server_default=text('1.0')
     )
     description: Mapped[str | None]
 
@@ -473,6 +514,9 @@ class TariffCostGroup(ModifiedAndCreatedColumnMixin, Base):
     tariff_cost_group_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tariff_id: Mapped[int] = mapped_column(ForeignKey(Tariff.tariff_id, ondelete='CASCADE'))
     name: Mapped[str]
+    allowed_reactive_power_over_active_power_pct: Mapped[Decimal] = mapped_column(
+        Ratio, server_default=text('1.0')
+    )
     description: Mapped[str | None]
 
     tariff: Mapped[Tariff] = relationship(back_populates='tariff_cost_groups')
@@ -492,6 +536,61 @@ Index(
 )
 
 
+class TariffComponentCalcStrategy(ModifiedAndCreatedColumnMixin, Base):
+    r"""The strategy for how a tariff component should be calculated.
+
+    Parameters
+    ----------
+    tariff_component_calc_strategy_id : int
+        The unique ID of the tariff component type. The primary key of the table.
+
+    name : str
+        The name of the tariff component type. Must be unique. Is indexed.
+
+    unit_id : str
+        The unit of the tariff component type. Foreign key to :attr:`Unit.unit_id`.
+
+    description : str or None
+        A description of the tariff component type.
+
+    updated_at : datetime.datetime or None
+        The timestamp at which the tariff component type was last updated (UTC).
+
+    updated_by : uuid.UUID or None
+        The ID of the user that last updated the tariff component type.
+
+    created_at : datetime.datetime
+        The timestamp at which the tariff component type was created (UTC).
+        Defaults to current timestamp.
+
+    created_by : uuid.UUID or None
+        The ID of the user that created the tariff component type.
+    """
+
+    columns__repr__: ClassVar[tuple[str, ...]] = (
+        'calc_strategy_id',
+        'name',
+        'description',
+        'updated_at',
+        'updated_by',
+        'created_at',
+        'created_by',
+    )
+
+    __tablename__ = 'ta_tariff_component_type'
+
+    calc_strategy_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    code: Mapped[str]
+    allowed_reactive_power_over_active_power: Mapped[Decimal] = mapped_column(
+        server_default=text('0')
+    )
+    description: Mapped[str | None]
+
+    tariff_component_types: Mapped[list['TariffComponentType']] = relationship(
+        back_populates='tariff_component_type'
+    )
+
+
 class TariffComponentType(ModifiedAndCreatedColumnMixin, Base):
     r"""The type of a tariff component.
 
@@ -503,8 +602,16 @@ class TariffComponentType(ModifiedAndCreatedColumnMixin, Base):
     name : str
         The name of the tariff component type. Must be unique. Is indexed.
 
-    unit_id : str
-        The unit of the tariff component type. Foreign key to :attr:`Unit.unit_id`.
+    unit_id : int
+        The input unit to the price of the tariff component type. Foreign key to :attr:`Unit.unit_id`.
+
+    is_revenue : bool, default True
+        True if the tariff component represents a revenue for the grid company and False for a cost.
+        E.g. for a tariff component for paying a compensation fee for production units helping the
+        grid should have `is_revenue` set to False.
+
+    output_unit_id : int
+        The output unit of calculation result of the tariff component type. Foreign key to :attr:`Unit.unit_id`.
 
     description : str or None
         A description of the tariff component type.
@@ -538,10 +645,25 @@ class TariffComponentType(ModifiedAndCreatedColumnMixin, Base):
 
     tariff_component_type_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str]
-    unit_id: Mapped[int] = mapped_column(ForeignKey(Unit.unit_id))
+    input_unit_id: Mapped[int] = mapped_column(ForeignKey(Unit.unit_id))
+    # output_unit_id: Mapped[int] = mapped_column(ForeignKey(Unit.unit_id))
+    calc_strategy_id: Mapped[int] = mapped_column(
+        ForeignKey(TariffComponentCalcStrategy.calc_strategy_id)
+    )
+    is_revenue: Mapped[bool] = mapped_column(
+        server_default=text('1'),
+        comment=(
+            'True if the tariff component represents a revenue '
+            'for the grid company and False for a cost.'
+        ),
+    )
     description: Mapped[str | None]
 
-    unit: Mapped[Unit] = relationship()
+    input_unit: Mapped[Unit] = relationship(foreign_keys=input_unit_id)
+    output_unit: Mapped[Unit] = relationship(foreign_keys=output_unit_id)
+    tariff_component_calc_strategy: Mapped[TariffComponentCalcStrategy] = relationship(
+        back_populates='tariff_component_types'
+    )
     tariff_components: Mapped[list['TariffComponent']] = relationship(
         back_populates='tariff_component_type'
     )
@@ -570,11 +692,18 @@ class TariffComponent(ModifiedAndCreatedColumnMixin, Base):
         The tariff cost group that the component belongs to.
         Foreign key to :attr:`TariffCostGroup.tariff_cost_group_id`. Is indexed.
 
-    price : int
+    price : decimal.Decimal
         The price of the component in the smallest unit of the currency, e.g. cents or öre.
+
+    authority_fee : decimal.Decimal, default 0
+        The part of the total price that is composed of a fee to the authorities.
 
     price_outside_validity : int, default 0
         The price of the component outside of its validity range.
+
+    authority_fee_outside_validity : int, default 0
+        The part of the total price outside of the validity that
+        represents the fee to the authorities.
 
     validity_start : datetime or None
         The start date the tariff component is valid from (inclusive)
@@ -603,7 +732,9 @@ class TariffComponent(ModifiedAndCreatedColumnMixin, Base):
         'tariff_component_type_id',
         'tariff_cost_group_id',
         'price',
+        'authority_fee',
         'price_outside_validity',
+        'authority_fee_outside_validity',
         'validity_start',
         'validity_end',
         'updated_at',
@@ -621,8 +752,12 @@ class TariffComponent(ModifiedAndCreatedColumnMixin, Base):
     tariff_cost_group_id: Mapped[int] = mapped_column(
         ForeignKey(TariffCostGroup.tariff_cost_group_id, ondelete='CASCADE')
     )
-    price: Mapped[int]
-    price_outside_validity: Mapped[int] = mapped_column(server_default=text('0'))
+    price: Mapped[Decimal] = mapped_column(MoneyPrice)
+    authority_fee: Mapped[Decimal] = mapped_column(MoneyPrice, server_default=text('0'))
+    price_outside_validity: Mapped[Decimal] = mapped_column(MoneyPrice, server_default=text('0'))
+    authority_fee_outside_validity: Mapped[Decimal] = mapped_column(
+        MoneyPrice, server_default=text('0')
+    )
     validity_start: Mapped[date | None] = mapped_column(
         Date,
         comment=(
@@ -637,7 +772,6 @@ class TariffComponent(ModifiedAndCreatedColumnMixin, Base):
             'in the configured business timezone of the app.'
         ),
     )
-
     tariff_component_type: Mapped[TariffComponentType] = relationship(
         back_populates='tariff_components'
     )
