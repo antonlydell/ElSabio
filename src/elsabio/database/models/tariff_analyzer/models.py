@@ -17,7 +17,14 @@ from sqlalchemy.ext.associationproxy import AssociationProxy, association_proxy
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 # Local
-from .core import Base, Currency, ModifiedAndCreatedColumnMixin, MoneyPrice, Ratio, Unit
+from elsabio.database.models.core import (
+    Base,
+    Currency,
+    ModifiedAndCreatedColumnMixin,
+    MoneyPrice,
+    Ratio,
+    Unit,
+)
 
 
 class FacilityType(ModifiedAndCreatedColumnMixin, Base):

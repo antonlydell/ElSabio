@@ -3,14 +3,18 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # See the LICENSE file in the project root for details.
 
-r"""The models of the database tables."""
+r"""The models of the core database tables."""
 
 # Local
-from .core import (
+from .models import (
     Base,
     Currency,
     CustomRole,
     Email,
+    ModifiedAndCreatedColumnMixin,
+    MoneyPrice,
+    MoneyTotal,
+    Ratio,
     Role,
     Unit,
     User,
@@ -19,11 +23,15 @@ from .core import (
 
 # The Public API
 __all__ = [
-    # core
+    # models
     'Base',
     'Currency',
     'CustomRole',
     'Email',
+    'ModifiedAndCreatedColumnMixin',
+    'MoneyPrice',
+    'MoneyTotal',
+    'Ratio',
     'Role',
     'Unit',
     'User',
