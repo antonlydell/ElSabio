@@ -6,6 +6,7 @@
 r"""The database models of the Tariff Analyzer module."""
 
 # Local
+from .default import add_default_tariff_analyzer_models_to_session
 from .models import (
     CalcStrategy,
     CustomerGroup,
@@ -23,6 +24,8 @@ from .models import (
 
 # The Public API
 __all__ = [
+    # default
+    'add_default_tariff_analyzer_models_to_session',
     # models
     'CalcStrategy',
     'CustomerGroup',

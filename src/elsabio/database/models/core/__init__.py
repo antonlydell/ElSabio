@@ -6,6 +6,7 @@
 r"""The models of the core database tables."""
 
 # Local
+from .default import add_default_core_models_to_session
 from .models import (
     Base,
     Currency,
@@ -23,6 +24,8 @@ from .models import (
 
 # The Public API
 __all__ = [
+    # default
+    'add_default_core_models_to_session',
     # models
     'Base',
     'Currency',

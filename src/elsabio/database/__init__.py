@@ -8,6 +8,7 @@ r"""The database of ElSabio."""
 # Local
 from . import models
 from .core import URL, Session, SessionFactory, commit, create_default_roles, create_session_factory
+from .init import init
 
 # The Public API
 __all__ = [
@@ -18,6 +19,8 @@ __all__ = [
     'commit',
     'create_default_roles',
     'create_session_factory',
+    # init
+    'init',
     # models
     'models',
 ]

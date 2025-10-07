@@ -15,6 +15,7 @@ from .core import (
     Unit,
     User,
     UserSignIn,
+    add_default_core_models_to_session,
 )
 
 # The Public API
@@ -28,4 +29,5 @@ __all__ = [
     'Unit',
     'User',
     'UserSignIn',
+    'add_default_core_models_to_session',
 ]
