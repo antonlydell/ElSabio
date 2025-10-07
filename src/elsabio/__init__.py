@@ -12,6 +12,7 @@ make smarter decisions.
 
 # Local
 from elsabio.app import APP_PATH
+from elsabio.core import OperationResult
 from elsabio.metadata import (
     __releasedate__,
     __version__,
@@ -22,6 +23,8 @@ from elsabio.metadata import (
 __all__ = [
     # app
     'APP_PATH',
+    # core
+    'OperationResult',
     # metadata
     '__releasedate__',
     '__version__',
