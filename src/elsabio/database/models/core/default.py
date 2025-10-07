@@ -10,7 +10,7 @@ r"""The default data of the core tables."""
 # Local
 from elsabio.database.core import Session
 
-from .models import Currency, Unit
+from .models import Currency, SerieType, Unit
 
 # Currency
 sek = Currency(
@@ -118,6 +118,21 @@ per_kVAr_per_year = Unit(
     description='A unit per kilo Volt Ampere reactive per year.',
 )
 
+# SerieType
+active_energy_cons = SerieType(serie_type_id=1, name='Active Energy Consumption')
+active_energy_prod = SerieType(serie_type_id=2, name='Active Energy Production')
+reactive_energy_cons = SerieType(serie_type_id=3, name='Reactive Energy Consumption')
+reactive_energy_prod = SerieType(serie_type_id=4, name='Reactive Energy Production')
+apparent_energy_cons = SerieType(serie_type_id=5, name='Apparent Energy Consumption')
+apparent_energy_prod = SerieType(serie_type_id=6, name='Apparent Energy Production')
+
+active_power_cons = SerieType(serie_type_id=7, name='Active Power Consumption')
+active_power_prod = SerieType(serie_type_id=8, name='Active Power Production')
+reactive_power_cons = SerieType(serie_type_id=9, name='Reactive Power Consumption')
+reactive_power_prod = SerieType(serie_type_id=10, name='Reactive Power Production')
+apparent_power_cons = SerieType(serie_type_id=11, name='Apparent Power Consumption')
+apparent_power_prod = SerieType(serie_type_id=12, name='Apparent Power Production')
+
 
 def add_default_core_models_to_session(session: Session) -> None:
     r"""Add the default core models to the database.
@@ -167,5 +182,18 @@ def add_default_core_models_to_session(session: Session) -> None:
             per_kVAr_per_month,
             per_kW_per_year,
             per_kVAr_per_year,
+            # SerieType
+            active_energy_cons,
+            active_energy_prod,
+            reactive_energy_cons,
+            reactive_energy_prod,
+            apparent_energy_cons,
+            apparent_energy_prod,
+            active_power_cons,
+            active_power_prod,
+            reactive_power_cons,
+            reactive_power_prod,
+            apparent_power_cons,
+            apparent_power_prod,
         )
     )
