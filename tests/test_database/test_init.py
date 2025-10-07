@@ -48,8 +48,11 @@ class TestInit:
 
         # Tables with default records.
         queries = {
+            # core
             'Currency': select(func.count()).select_from(core_models.Currency),
             'Unit': select(func.count()).select_from(core_models.Unit),
+            'SerieType': select(func.count()).select_from(core_models.SerieType),
+            # tariff_analyzer
             'FacilityType': select(func.count()).select_from(ta_models.FacilityType),
             'CalcStrategy': select(func.count()).select_from(ta_models.CalcStrategy),
         }

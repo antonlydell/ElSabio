@@ -23,6 +23,7 @@ from elsabio.database.models.core import (
     ModifiedAndCreatedColumnMixin,
     MoneyPrice,
     Ratio,
+    SerieType,
     Unit,
 )
 
@@ -728,6 +729,10 @@ class TariffComponentType(ModifiedAndCreatedColumnMixin, Base):
         for tariff components associated with the tariff component type.
         Foreign key to :attr:`CalcStrategy.calc_strategy_id`.
 
+    serie_type_id : int or None
+        The ID of the type of meter data serie associated with the tariff component calculations.
+        Foreign key to :attr:`SerieType.serie_type_id`.
+
     is_revenue : bool, default True
         True if the tariff component type represents a revenue for the grid company and False
         for a cost. E.g. a tariff component type representing a compensation fee to production
@@ -755,6 +760,7 @@ class TariffComponentType(ModifiedAndCreatedColumnMixin, Base):
         'name',
         'unit_id',
         'calc_strategy_id',
+        'serie_type_id',
         'is_revenue',
         'description',
         'updated_at',
@@ -769,6 +775,7 @@ class TariffComponentType(ModifiedAndCreatedColumnMixin, Base):
     name: Mapped[str]
     unit_id: Mapped[int] = mapped_column(ForeignKey(Unit.unit_id))
     calc_strategy_id: Mapped[int] = mapped_column(ForeignKey(CalcStrategy.calc_strategy_id))
+    serie_type_id: Mapped[int | None] = mapped_column(ForeignKey(SerieType.serie_type_id))
     is_revenue: Mapped[bool] = mapped_column(
         server_default=text('1'),
         comment=(
@@ -780,6 +787,7 @@ class TariffComponentType(ModifiedAndCreatedColumnMixin, Base):
 
     unit: Mapped[Unit] = relationship()
     calc_strategy: Mapped[CalcStrategy] = relationship(back_populates='tariff_component_types')
+    serie_type: Mapped[SerieType] = relationship()
     tariff_components: Mapped[list['TariffComponent']] = relationship(
         back_populates='tariff_component_type'
     )

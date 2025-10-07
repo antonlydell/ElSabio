@@ -156,3 +156,57 @@ class Unit(ModifiedAndCreatedColumnMixin, Base):
 
 
 Index(f'{Unit.__tablename__}_code_uix', Unit.code, unique=True)
+
+
+class SerieType(ModifiedAndCreatedColumnMixin, Base):
+    r"""The types of meter data series.
+
+    Parameters
+    ----------
+    serie_type_id : int
+        The unique ID of the serie type. The primary key of the table.
+
+    name : str
+        The unique name of the serie type. Is indexed.
+
+    external_id : str or None
+        The unique external ID of the serie type. Is indexed.
+
+    description : str or None
+        A description of the serie type.
+
+    updated_at : datetime.datetime or None
+        The timestamp at which the serie type was last updated (UTC).
+
+    updated_by : uuid.UUID or None
+        The ID of the user that last updated the serie type.
+
+    created_at : datetime.datetime
+        The timestamp at which the serie type was created (UTC).
+        Defaults to current timestamp.
+
+    created_by : uuid.UUID or None
+        The ID of the user that created the serie type.
+    """
+
+    columns__repr__: ClassVar[tuple[str, ...]] = (
+        'currency_id',
+        'name',
+        'external_id',
+        'description',
+        'updated_at',
+        'updated_by',
+        'created_at',
+        'created_by',
+    )
+
+    __tablename__ = 'serie_type'
+
+    serie_type_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
+    name: Mapped[str]
+    external_id: Mapped[str | None]
+    description: Mapped[str | None]
+
+
+Index(f'{SerieType.__tablename__}_name_uix', SerieType.name, unique=True)
+Index(f'{SerieType.__tablename__}_external_id_uix', SerieType.external_id, unique=True)
