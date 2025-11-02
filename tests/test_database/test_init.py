@@ -65,6 +65,9 @@ class TestInit:
         # Verify
         # ===========================================================
         assert result.ok, 'result.ok is False!'
+        assert result.short_msg == '', 'result.short_msg is incorrect!'
+        assert result.long_msg == '', 'result.long_msg is incorrect!'
+        assert result.code is None, 'result.code is not None!'
 
         with session_factory() as session:
             tables = set(session.scalars(get_tables_query))
@@ -86,6 +89,31 @@ class TestInit:
 
         for table in diff_in_tables_not_in_tables_exp:
             assert table.startswith('stp_'), f'{table=} is not a streamlit_passwordless table!'
+
+        # Clean up - None
+        # ===========================================================
+
+    def test_initialize_already_initialized_database(self, tmp_path: Path) -> None:
+        r"""Test to initialize an already initialized database."""
+
+        # Setup
+        # ===========================================================
+        db = tmp_path / 'ElSabio.db'
+        url = f'sqlite:///{db!s}'
+        session_factory = create_session_factory(url=url, create_database=True)
+
+        # Exercise
+        # ===========================================================
+        with session_factory() as session:
+            init(session=session)
+            result = init(session=session)
+
+        # Verify
+        # ===========================================================
+        assert result.ok is False, 'result.ok is True!'
+        assert result.short_msg == 'Error initializing database!', 'result.short_msg is incorrect!'
+        assert 'Error initializing database!' in result.long_msg, 'result.long_msg is incorrect!'
+        assert result.code == 'sqlalchemy.exc.IntegrityError', 'result.code is incorrect!'
 
         # Clean up - None
         # ===========================================================
