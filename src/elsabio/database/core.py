@@ -9,8 +9,9 @@ r"""The core database functionality."""
 import logging
 
 # Third party
+from sqlalchemy import URL as URL
+from sqlalchemy import make_url as make_url
 from sqlalchemy.exc import SQLAlchemyError
-from streamlit_passwordless.database import URL as URL
 from streamlit_passwordless.database import Session as Session
 from streamlit_passwordless.database import SessionFactory as SessionFactory
 from streamlit_passwordless.database import create_default_roles as create_default_roles
