@@ -13,6 +13,13 @@ make smarter decisions.
 # Local
 from elsabio.app import APP_PATH
 from elsabio.core import OperationResult
+from elsabio.exceptions import (
+    ConfigError,
+    ConfigFileNotFoundError,
+    ElSabioError,
+    ParseConfigError,
+    SecretsFileNotFoundError,
+)
 from elsabio.metadata import (
     __releasedate__,
     __version__,
@@ -25,6 +32,12 @@ __all__ = [
     'APP_PATH',
     # core
     'OperationResult',
+    # exceptions
+    'ConfigError',
+    'ConfigFileNotFoundError',
+    'ElSabioError',
+    'ParseConfigError',
+    'SecretsFileNotFoundError',
     # metadata
     '__releasedate__',
     '__version__',
