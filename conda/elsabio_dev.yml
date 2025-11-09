@@ -6,6 +6,7 @@ dependencies:
   # Run
   - click >=8.0
   - pydantic >=2.0
+  - pydantic-settings >=2.10
   - python >=3.12
   - streamlit >=1.46
   - streamlit_passwordless >=0.16

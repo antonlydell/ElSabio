@@ -1,0 +1,4 @@
+[database]
+autoflush false
+expire_on_commit = true
+create_database = true

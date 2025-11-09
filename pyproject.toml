@@ -54,6 +54,7 @@ dynamic = ["version"]
 dependencies = [
     "click >= 8.0",
     "pydantic >= 2.0",
+    "pydantic-settings >= 2.10",
     "streamlit >= 1.46",
     "streamlit-passwordless >= 0.16",
     "sqlalchemy >= 2.0",

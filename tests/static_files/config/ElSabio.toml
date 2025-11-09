@@ -1,0 +1,31 @@
+[database]
+url = ':db_url'
+autoflush = false
+expire_on_commit = true
+create_database = true
+
+[database.connect_args]
+timeout = 30
+
+[database.engine_config]
+echo = true
+
+[bwp]
+public_key = 'bwp_public_key'
+private_key = 'bwp_private_key'
+
+[logging]
+disabled = false
+min_log_level = 'INFO'
+
+[logging.stream.stdout]
+stream = 'stdout'
+
+[logging.stream.stderr]
+stream = 'stderr'
+min_log_level = 'ERROR'
+
+[logging.file.web]
+path = ':web_log_file_path'
+max_bytes = 1_200_000
+backup_count = 5
