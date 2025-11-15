@@ -60,6 +60,9 @@ dependencies = [
     "sqlalchemy >= 2.0",
 ]
 
+[project.scripts]
+elsabio-web = "elsabio.app.cli:main"
+
 [project.urls]
 "Bug Tracker" = "https://github.com/antonlydell/ElSabio/issues"
 "Documentation" = "https://github.com/antonlydell/ElSabio"
