@@ -12,4 +12,5 @@ from enum import StrEnum
 class Pages(StrEnum):
     r"""The pages of the application."""
 
+    INIT = '_pages/init.py'
     HOME = '_pages/home.py'
