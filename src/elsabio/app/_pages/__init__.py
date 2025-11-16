@@ -14,3 +14,4 @@ class Pages(StrEnum):
 
     INIT = '_pages/init.py'
     HOME = '_pages/home.py'
+    SIGN_IN = '_pages/sign_in.py'

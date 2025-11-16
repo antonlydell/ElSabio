@@ -9,6 +9,8 @@ r"""The entry point of the home page."""
 import streamlit as st
 
 # Local
+from elsabio.app._pages import Pages
+from elsabio.app.auth import authorized
 from elsabio.app.info import (
     APP_HOME_PAGE_URL,
     APP_ISSUES_PAGE_URL,
@@ -22,12 +24,12 @@ The Simple Electricity Meter Data Analysis Platform
 """
 
 
+@authorized(redirect=Pages.SIGN_IN)
 def home_page() -> None:
     r"""Run the home page of the ElSabio web app."""
 
     st.set_page_config(
         page_title='ElSabio - Home',
-        page_icon='⚡',
         layout='wide',
         menu_items={
             'About': ABOUT,
@@ -37,7 +39,7 @@ def home_page() -> None:
         initial_sidebar_state='auto',
     )
 
-    st.title('ElSabio')
+    st.title('ElSabio ⚡')
     st.subheader('The Simple Electricity Meter Data Analysis Platform')
 
 
