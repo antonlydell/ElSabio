@@ -55,6 +55,9 @@ class TestInit:
             # tariff_analyzer
             'FacilityType': select(func.count()).select_from(ta_models.FacilityType),
             'CustomerType': select(func.count()).select_from(ta_models.CustomerType),
+            'CustomerGroupMappingStrategy': select(func.count()).select_from(
+                ta_models.CustomerGroupMappingStrategy
+            ),
             'CalcStrategy': select(func.count()).select_from(ta_models.CalcStrategy),
         }
 

@@ -83,6 +83,7 @@ class FacilityType(AuditColumnsMixin, Base):
     description: Mapped[str | None]
 
     facilities: Mapped[list['Facility']] = relationship(back_populates='facility_type')
+    customer_groups: Mapped[list['CustomerGroup']] = relationship(back_populates='facility_type')
 
 
 class CustomerType(AuditColumnsMixin, Base):
@@ -369,6 +370,54 @@ Index(f'{FacilityContract.__tablename__}_customer_type_id_ix', FacilityContract.
 Index(f'{FacilityContract.__tablename__}_product_id_ix', FacilityContract.product_id)
 
 
+class CustomerGroupMappingStrategy(AuditColumnsMixin, Base):
+    r"""The strategies for how to associate facilities with customer groups.
+
+    Parameters
+    ----------
+    mapping_strategy_id : int
+        The unique ID of the customer group mapping strategy. The primary key of the table.
+
+    name : str
+        The unique name of the customer group mapping strategy. Is indexed.
+        Max length of 150 characters.
+
+    description : str or None
+        A description of the customer group mapping strategy.
+
+    updated_at : datetime.datetime or None
+        The timestamp at which the customer group mapping strategy was last updated (UTC).
+
+    updated_by : uuid.UUID or None
+        The ID of the user that last updated the customer group mapping strategy.
+
+    created_at : datetime.datetime
+        The timestamp at which the customer group mapping strategy was created (UTC).
+        Defaults to current timestamp.
+
+    created_by : uuid.UUID or None
+        The ID of the user that created the customer group mapping strategy.
+    """
+
+    columns__repr__: ClassVar[tuple[str, ...]] = (
+        'mapping_strategy_id',
+        'name',
+        'description',
+        'updated_at',
+        'updated_by',
+        'created_at',
+        'created_by',
+    )
+
+    __tablename__ = 'ta_customer_group_mapping_strategy'
+
+    mapping_strategy_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
+    name: Mapped[str] = mapped_column(String(150), unique=True)
+    description: Mapped[str | None]
+
+    customer_groups: Mapped[list['CustomerGroup']] = relationship(back_populates='mapping_strategy')
+
+
 class CustomerGroup(AuditColumnsMixin, Base):
     r"""A facility is part of a customer group based on its facility contract information.
 
@@ -380,14 +429,31 @@ class CustomerGroup(AuditColumnsMixin, Base):
     name : str
         The unique name of the customer group. Is indexed. Max length of 150 characters.
 
-    fuse_size : int or None
-        The fuse size [A] of the customer group.
+    min_fuse_size : int or None
+        The minimum fuse size [A] of the customer group (inclusive).
 
-    min_active_power : float or None
-        The minimum contracted active power of the customer group [kW].
+    max_fuse_size : int or None
+        The maximum fuse size [A] of the customer group (inclusive).
 
-    max_active_power : float or None
-        The maximum contracted active power of the customer group [kW].
+    min_subscribed_power : float or None
+        The minimum subscribed power of the customer group [kW] (inclusive).
+
+    max_subscribed_power : float or None
+        The maximum subscribed power of the customer group [kW] (inclusive).
+
+    min_connection_power : float or None
+        The minimum connection power of the customer group [kW] (inclusive).
+
+    max_connection_power : float or None
+        The maximum connection power of the customer group [kW] (inclusive).
+
+    facility_type_id : int
+        The type of facility that can be associated with the customer group.
+        Foreign key to :attr:`FacilityType.facility_type_id`. Is indexed.
+
+    mapping_strategy_id : int
+        The ID of the customer group mapping strategy to apply to map facilities to the customer
+        group. Is indexed. Foreign key to :attr:`CustomerGroupMappingStrategy.mapping_strategy_id`.
 
     description : str or None
         A description of the customer group.
@@ -409,9 +475,14 @@ class CustomerGroup(AuditColumnsMixin, Base):
     columns__repr__: ClassVar[tuple[str, ...]] = (
         'customer_group_id',
         'name',
-        'fuse_size',
-        'min_active_power',
-        'max_active_power',
+        'min_fuse_size',
+        'max_fuse_size',
+        'min_subscribed_power',
+        'max_subscribed_power',
+        'min_connection_power',
+        'max_connection_power',
+        'facility_type_id',
+        'mapping_strategy_id',
         'description',
         'updated_at',
         'updated_by',
@@ -423,9 +494,16 @@ class CustomerGroup(AuditColumnsMixin, Base):
 
     customer_group_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     name: Mapped[str] = mapped_column(String(150), unique=True)
-    fuse_size: Mapped[int | None]
-    min_active_power: Mapped[float | None]
-    max_active_power: Mapped[float | None]
+    min_fuse_size: Mapped[int | None]
+    max_fuse_size: Mapped[int | None]
+    min_subscribed_power: Mapped[float | None]
+    max_subscribed_power: Mapped[float | None]
+    min_connection_power: Mapped[float | None]
+    max_connection_power: Mapped[float | None]
+    facility_type_id: Mapped[int] = mapped_column(ForeignKey(FacilityType.facility_type_id))
+    mapping_strategy_id: Mapped[int] = mapped_column(
+        ForeignKey(CustomerGroupMappingStrategy.mapping_strategy_id)
+    )
     description: Mapped[str | None]
 
     facility_customer_group_links: Mapped[list['FacilityCustomerGroupLink']] = relationship(
@@ -434,6 +512,14 @@ class CustomerGroup(AuditColumnsMixin, Base):
     tariff_cost_group_customer_group_links: Mapped[list['TariffCostGroupCustomerGroupLink']] = (
         relationship(back_populates='customer_group', passive_deletes=True)
     )
+    facility_type: Mapped[FacilityType] = relationship(back_populates='customer_groups')
+    mapping_strategy: Mapped[CustomerGroupMappingStrategy] = relationship(
+        back_populates='customer_groups'
+    )
+
+
+Index(f'{CustomerGroup.__tablename__}_facility_type_id_ix', CustomerGroup.facility_type_id)
+Index(f'{CustomerGroup.__tablename__}_mapping_strategy_id_ix', CustomerGroup.mapping_strategy_id)
 
 
 class FacilityCustomerGroupLink(AuditColumnsMixin, Base):

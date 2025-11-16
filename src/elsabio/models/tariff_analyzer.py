@@ -41,6 +41,26 @@ class CustomerType(Enum):
     COMPANY = 2
 
 
+class CustomerGroupMappingStrategy(Enum):
+    r"""The available types of customer group mapping strategies.
+
+    Members
+    -------
+    FUSE_SIZE
+        Map facilities to customer groups based on their contracted fuse size.
+
+    SUBSCRIBED_POWER
+        Map facilities to customer groups based on their subscribed power.
+
+    CONNECTION_POWER
+        Map facilities to customer groups based on their connection power.
+    """
+
+    FUSE_SIZE = 1
+    SUBSCRIBED_POWER = 2
+    CONNECTION_POWER = 3
+
+
 class CalcStrategy(Enum):
     r"""The available strategies for the tariff calculations.
 

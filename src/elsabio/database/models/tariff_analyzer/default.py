@@ -8,10 +8,13 @@ r"""The default data of the Tariff Analyzer module."""
 # Local
 from elsabio.database.core import Session
 from elsabio.models.tariff_analyzer import CalcStrategy as CalcStrategyEnum
+from elsabio.models.tariff_analyzer import (
+    CustomerGroupMappingStrategy as CustomerGroupMappingStrategyEnum,
+)
 from elsabio.models.tariff_analyzer import CustomerType as CustomerTypeEnum
 from elsabio.models.tariff_analyzer import FacilityType as FacilityTypeEnum
 
-from .models import CalcStrategy, CustomerType, FacilityType
+from .models import CalcStrategy, CustomerGroupMappingStrategy, CustomerType, FacilityType
 
 # FacilityType
 facility_type_cons = FacilityType(
@@ -35,6 +38,23 @@ customer_type_company = CustomerType(
     customer_type_id=CustomerTypeEnum.COMPANY.value,
     name='Company',
     description='A company customer.',
+)
+
+# CustomerGroupMappingStrategy
+cg_mapping_strategy_fuse_size = CustomerGroupMappingStrategy(
+    mapping_strategy_id=CustomerGroupMappingStrategyEnum.FUSE_SIZE.value,
+    name='fuse_size',
+    description='Map facilities to customer groups based on their contracted fuse size.',
+)
+cg_mapping_strategy_subscribed_power = CustomerGroupMappingStrategy(
+    mapping_strategy_id=CustomerGroupMappingStrategyEnum.SUBSCRIBED_POWER.value,
+    name='subscribed_power',
+    description='Map facilities to customer groups based on their subscribed power.',
+)
+cg_mapping_strategy_connection_power = CustomerGroupMappingStrategy(
+    mapping_strategy_id=CustomerGroupMappingStrategyEnum.CONNECTION_POWER.value,
+    name='connection_power',
+    description='Map facilities to customer groups based on their connection power.',
 )
 
 # CalcStrategy
@@ -99,6 +119,10 @@ def add_default_tariff_analyzer_models_to_session(session: Session) -> None:
             # CustomerType
             customer_type_private_person,
             customer_type_company,
+            # CustomerGroupMappingStrategy
+            cg_mapping_strategy_fuse_size,
+            cg_mapping_strategy_subscribed_power,
+            cg_mapping_strategy_connection_power,
             # CalcStrategy
             per_unit,
             per_year_periodize_over_month_length,

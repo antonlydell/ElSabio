@@ -10,6 +10,7 @@ from .default import add_default_tariff_analyzer_models_to_session
 from .models import (
     CalcStrategy,
     CustomerGroup,
+    CustomerGroupMappingStrategy,
     CustomerType,
     Facility,
     FacilityContract,
@@ -31,6 +32,7 @@ __all__ = [
     # models
     'CalcStrategy',
     'CustomerGroup',
+    'CustomerGroupMappingStrategy',
     'CustomerType',
     'Facility',
     'FacilityContract',
