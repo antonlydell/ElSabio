@@ -9,7 +9,7 @@ r"""The core database tables."""
 from typing import ClassVar
 
 # Third party
-from sqlalchemy import Identity, Index, Numeric
+from sqlalchemy import Identity, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 from streamlit_passwordless.database.models import AuditColumnsMixin as AuditColumnsMixin
 from streamlit_passwordless.database.models import Base as Base
@@ -33,7 +33,7 @@ class Currency(AuditColumnsMixin, Base):
         The unique ID of the currency. The primary key of the table.
 
     iso_code : str
-        The ISO code of the currency. Must be unique. Is indexed.
+        The unique ISO code of the currency. Is indexed. Max length of 64 characters.
 
     name : str
         The name of the currency.
@@ -90,7 +90,7 @@ class Currency(AuditColumnsMixin, Base):
     __tablename__ = 'currency'
 
     currency_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
-    iso_code: Mapped[str]
+    iso_code: Mapped[str] = mapped_column(String(64), unique=True)
     name: Mapped[str]
     minor_unit_name: Mapped[str]
     minor_per_major: Mapped[int]
@@ -98,9 +98,6 @@ class Currency(AuditColumnsMixin, Base):
     symbol: Mapped[str | None]
     symbol_minor_unit: Mapped[str | None]
     description: Mapped[str | None]
-
-
-Index(f'{Currency.__tablename__}_iso_code_uix', Currency.iso_code, unique=True)
 
 
 class Unit(AuditColumnsMixin, Base):
@@ -112,7 +109,7 @@ class Unit(AuditColumnsMixin, Base):
         The unique ID of the unit. The primary key of the table.
 
     code : str
-        The code of the unit. Must be unique. Is indexed.
+        The unique code of the unit. Is indexed. Max length of 64 characters.
 
     display_name : str
         The display name of the unit.
@@ -148,12 +145,9 @@ class Unit(AuditColumnsMixin, Base):
     __tablename__ = 'unit'
 
     unit_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
-    code: Mapped[str]
+    code: Mapped[str] = mapped_column(String(64), unique=True)
     display_name: Mapped[str]
     description: Mapped[str | None]
-
-
-Index(f'{Unit.__tablename__}_code_uix', Unit.code, unique=True)
 
 
 class SerieType(AuditColumnsMixin, Base):
@@ -165,10 +159,10 @@ class SerieType(AuditColumnsMixin, Base):
         The unique ID of the serie type. The primary key of the table.
 
     name : str
-        The unique name of the serie type. Is indexed.
+        The unique name of the serie type. Is indexed. Max length of 150 characters.
 
     external_id : str or None
-        The unique external ID of the serie type. Is indexed.
+        The unique external ID of the serie type. Is indexed. Max length of 150 characters.
 
     description : str or None
         A description of the serie type.
@@ -201,10 +195,6 @@ class SerieType(AuditColumnsMixin, Base):
     __tablename__ = 'serie_type'
 
     serie_type_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
-    name: Mapped[str]
-    external_id: Mapped[str | None]
+    name: Mapped[str] = mapped_column(String(150), unique=True)
+    external_id: Mapped[str | None] = mapped_column(String(150), unique=True)
     description: Mapped[str | None]
-
-
-Index(f'{SerieType.__tablename__}_name_uix', SerieType.name, unique=True)
-Index(f'{SerieType.__tablename__}_external_id_uix', SerieType.external_id, unique=True)

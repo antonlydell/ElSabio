@@ -12,7 +12,17 @@ from typing import ClassVar
 from uuid import UUID
 
 # Third party
-from sqlalchemy import BigInteger, CheckConstraint, Date, ForeignKey, Identity, Index, func, text
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    Date,
+    ForeignKey,
+    Identity,
+    Index,
+    String,
+    func,
+    text,
+)
 from sqlalchemy.ext.associationproxy import AssociationProxy, association_proxy
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -37,7 +47,7 @@ class FacilityType(AuditColumnsMixin, Base):
         The unique ID of the facility type. The primary key of the table.
 
     name : str
-        The name of the facility type. Must be unique. Is indexed.
+        The unique name of the facility type. Is indexed. Max length of 150 characters.
 
     description : str or None
         A description of the facility type.
@@ -69,13 +79,10 @@ class FacilityType(AuditColumnsMixin, Base):
     __tablename__ = 'ta_facility_type'
 
     facility_type_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
-    name: Mapped[str | None]
+    name: Mapped[str] = mapped_column(String(150), unique=True)
     description: Mapped[str | None]
 
     facilities: Mapped[list['Facility']] = relationship(back_populates='facility_type')
-
-
-Index(f'{FacilityType.__tablename__}_name_uix', FacilityType.name, unique=True)
 
 
 class Facility(AuditColumnsMixin, Base):
@@ -245,7 +252,7 @@ class CustomerGroup(AuditColumnsMixin, Base):
        The unique ID of the customer group. The primary key of the table.
 
     name : str
-        The name of the customer group. Must be unique. Is indexed.
+        The unique name of the customer group. Is indexed. Max length of 150 characters.
 
     fuse_size : int or None
         The fuse size [A] of the customer group.
@@ -289,7 +296,7 @@ class CustomerGroup(AuditColumnsMixin, Base):
     __tablename__ = 'ta_customer_group'
 
     customer_group_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(String(150), unique=True)
     fuse_size: Mapped[int | None]
     min_active_power: Mapped[float | None]
     max_active_power: Mapped[float | None]
@@ -301,9 +308,6 @@ class CustomerGroup(AuditColumnsMixin, Base):
     tariff_cost_group_customer_group_links: Mapped[list['TariffCostGroupCustomerGroupLink']] = (
         relationship(back_populates='customer_group', passive_deletes=True)
     )
-
-
-Index(f'{CustomerGroup.__tablename__}_name_uix', CustomerGroup.name, unique=True)
 
 
 class FacilityCustomerGroupLink(AuditColumnsMixin, Base):
@@ -392,7 +396,7 @@ class Tariff(AuditColumnsMixin, Base):
         The unique ID of the tariff. The primary key of the table.
 
     name : str
-        The name of the tariff. Must be unique. Is indexed.
+        The unique name of the tariff. Is indexed. Max length of 150 characters.
 
     currency_id : int
         The ID of the currency of the tariff.
@@ -449,7 +453,7 @@ class Tariff(AuditColumnsMixin, Base):
     __tablename__ = 'ta_tariff'
 
     tariff_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(String(150), unique=True)
     currency_id: Mapped[int] = mapped_column(ForeignKey(Currency.currency_id))
     validity_start: Mapped[date | None] = mapped_column(
         Date,
@@ -550,7 +554,6 @@ class Tariff(AuditColumnsMixin, Base):
         return link
 
 
-Index(f'{Tariff.__tablename__}_name_uix', Tariff.name, unique=True)
 Index(f'{Tariff.__tablename__}_currency_id_ix', Tariff.currency_id)
 
 
@@ -568,6 +571,7 @@ class TariffCostGroup(AuditColumnsMixin, Base):
 
     name : str
         The name of the tariff cost group. Must be unique within each `tariff_id`.
+        Max length of 150 characters.
 
     allowed_reactive_over_active_power_cons : decimal.Decimal, default 1.0
         The ratio of allowed reactive power consumption in relation to subscribed active
@@ -613,7 +617,7 @@ class TariffCostGroup(AuditColumnsMixin, Base):
 
     tariff_cost_group_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     tariff_id: Mapped[int] = mapped_column(ForeignKey(Tariff.tariff_id, ondelete='CASCADE'))
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(String(150))
     allowed_reactive_over_active_power_cons: Mapped[Decimal] = mapped_column(
         Ratio, server_default=text('1.0')
     )
@@ -667,10 +671,10 @@ class CalcStrategy(AuditColumnsMixin, Base):
         The unique ID of the calculation strategy. The primary key of the table.
 
     name : str
-        The name of the strategy. Must be unique. Is indexed.
+        The unique name of the strategy. Is indexed. Max length of 150 characters.
 
     description : str or None
-        A description of calculation strategy.
+        A description of the calculation strategy.
 
     updated_at : datetime.datetime or None
         The timestamp at which calculation strategy was last updated (UTC).
@@ -699,15 +703,12 @@ class CalcStrategy(AuditColumnsMixin, Base):
     __tablename__ = 'ta_calc_strategy'
 
     calc_strategy_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(String(150), unique=True)
     description: Mapped[str | None]
 
     tariff_component_types: Mapped[list['TariffComponentType']] = relationship(
         back_populates='calc_strategy'
     )
-
-
-Index(f'{CalcStrategy.__tablename__}_name_uix', CalcStrategy.name, unique=True)
 
 
 class TariffComponentType(AuditColumnsMixin, Base):
@@ -719,7 +720,7 @@ class TariffComponentType(AuditColumnsMixin, Base):
         The unique ID of the tariff component type. The primary key of the table.
 
     name : str
-        The name of the tariff component type. Must be unique. Is indexed.
+        The unique name of the tariff component type. Is indexed. Max length of 150 characters.
 
     unit_id : int
         The unit of the tariff component type. Foreign key to :attr:`Unit.unit_id`.
@@ -772,7 +773,7 @@ class TariffComponentType(AuditColumnsMixin, Base):
     __tablename__ = 'ta_tariff_component_type'
 
     tariff_component_type_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(String(150), unique=True)
     unit_id: Mapped[int] = mapped_column(ForeignKey(Unit.unit_id))
     calc_strategy_id: Mapped[int] = mapped_column(ForeignKey(CalcStrategy.calc_strategy_id))
     serie_type_id: Mapped[int | None] = mapped_column(ForeignKey(SerieType.serie_type_id))
@@ -802,13 +803,6 @@ class TariffComponentType(AuditColumnsMixin, Base):
         viewonly=True,
         collection_class=set,
     )
-
-
-Index(
-    f'{TariffComponentType.__tablename__}_name_uix',
-    TariffComponentType.name,
-    unique=True,
-)
 
 
 class TariffTariffComponentTypeLink(AuditColumnsMixin, Base):
