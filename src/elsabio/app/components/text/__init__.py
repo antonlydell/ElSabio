@@ -3,12 +3,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # See the LICENSE file in the project root for details.
 
-r"""The data models of ElSabio."""
+r"""The text based components."""
 
-from .core import User
+# Local
+from .user_info_text import user_info_text
 
 # The Public API
 __all__ = [
-    # core
-    'User',
+    # user_info_text
+    'user_info_text'
 ]
