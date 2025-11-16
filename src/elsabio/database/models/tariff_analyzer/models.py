@@ -85,6 +85,108 @@ class FacilityType(AuditColumnsMixin, Base):
     facilities: Mapped[list['Facility']] = relationship(back_populates='facility_type')
 
 
+class CustomerType(AuditColumnsMixin, Base):
+    r"""The type of customer associated with a facility contract.
+
+    Parameters
+    ----------
+    customer_type_id : int
+        The unique ID of the customer type. The primary key of the table.
+
+    name : str
+        The unique name of the customer type. Is indexed. Max length of 150 characters.
+
+    description : str or None
+        A description of the customer type.
+
+    updated_at : datetime.datetime or None
+        The timestamp at which the customer type was last updated (UTC).
+
+    updated_by : uuid.UUID or None
+        The ID of the user that last updated the customer type.
+
+    created_at : datetime.datetime
+        The timestamp at which the customer type was created (UTC).
+        Defaults to current timestamp.
+
+    created_by : uuid.UUID or None
+        The ID of the user that created the customer type.
+    """
+
+    columns__repr__: ClassVar[tuple[str, ...]] = (
+        'customer_type_id',
+        'name',
+        'description',
+        'updated_at',
+        'updated_by',
+        'created_at',
+        'created_by',
+    )
+
+    __tablename__ = 'ta_customer_type'
+
+    customer_type_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
+    name: Mapped[str] = mapped_column(String(150), unique=True)
+    description: Mapped[str | None]
+
+    facility_contracts: Mapped[list['FacilityContract']] = relationship(
+        back_populates='customer_type'
+    )
+
+
+class Product(AuditColumnsMixin, Base):
+    r"""A product that can be associated with a facility contract.
+
+    Parameters
+    ----------
+    product_id : int
+        The unique ID of the product. The primary key of the table.
+
+    external_id : str
+        The unique ID of the product in the parent system. Is indexed.
+        Max length of 150 characters.
+
+    name : str
+        The unique name of the product. Is indexed. Max length of 150 characters.
+
+    description : str or None
+        A description of the product.
+
+    updated_at : datetime.datetime or None
+        The timestamp at which the product was last updated (UTC).
+
+    updated_by : uuid.UUID or None
+        The ID of the user that last updated the product.
+
+    created_at : datetime.datetime
+        The timestamp at which the product was created (UTC).
+        Defaults to current timestamp.
+
+    created_by : uuid.UUID or None
+        The ID of the user that created the product.
+    """
+
+    columns__repr__: ClassVar[tuple[str, ...]] = (
+        'product_id',
+        'external_id',
+        'name',
+        'description',
+        'updated_at',
+        'updated_by',
+        'created_at',
+        'created_by',
+    )
+
+    __tablename__ = 'ta_product'
+
+    product_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
+    external_id: Mapped[str] = mapped_column(String(150), unique=True)
+    name: Mapped[str] = mapped_column(String(150), unique=True)
+    description: Mapped[str | None]
+
+    facility_contracts: Mapped[list['FacilityContract']] = relationship(back_populates='product')
+
+
 class Facility(AuditColumnsMixin, Base):
     r"""A facility where electricity is delivered as part of a grid contract.
 
@@ -173,6 +275,7 @@ class FacilityContract(AuditColumnsMixin, Base):
     ----------
     facility_id : int
         The unique ID of the facility. Part of the primary key of the table.
+        Foreign key to :attr:`Facility.facility_id`.
 
     date_id : datetime.date
         The month the contract data is valid for represented as the first day of the month in
@@ -186,6 +289,17 @@ class FacilityContract(AuditColumnsMixin, Base):
 
     connection_power : float or None
         The connection power of the facility [kW].
+
+    account_nr : int or None
+        The bookkeeping account of the facility contract.
+
+    customer_type_id : int
+        The ID of the type of customer associated with the facility contract. Is indexed.
+        Foreign key to :attr:`CustomerType.customer_type_id`.
+
+    product_id : int or None
+        The ID of the product associated with the facility contract. Is indexed.
+        Foreign key to :attr:`Product.product_id`.
 
     updated_at : datetime.datetime or None
         The timestamp at which the facility contract was last updated (UTC).
@@ -207,6 +321,9 @@ class FacilityContract(AuditColumnsMixin, Base):
         'fuse_size',
         'subscribed_power',
         'connection_power',
+        'account_nr',
+        'customer_type_id',
+        'product_id',
         'updated_at',
         'updated_by',
         'created_at',
@@ -228,8 +345,15 @@ class FacilityContract(AuditColumnsMixin, Base):
     fuse_size: Mapped[int | None]
     subscribed_power: Mapped[float | None]
     connection_power: Mapped[float | None]
+    account_nr: Mapped[int | None]
+    customer_type_id: Mapped[int] = mapped_column(ForeignKey(CustomerType.customer_type_id))
+    product_id: Mapped[int | None] = mapped_column(
+        ForeignKey(Product.product_id, ondelete='SET NULL')
+    )
 
     facility: Mapped[Facility] = relationship(back_populates='facility_contracts')
+    customer_type: Mapped[CustomerType] = relationship(back_populates='facility_contracts')
+    product: Mapped[Product] = relationship(back_populates='facility_contracts')
 
     __table_args__ = (
         CheckConstraint(func.extract('day', date_id) == 1, name='ck_fc_date_id_first_of_month'),
@@ -241,6 +365,8 @@ Index(
     FacilityContract.date_id,
     FacilityContract.facility_id,
 )
+Index(f'{FacilityContract.__tablename__}_customer_type_id_ix', FacilityContract.customer_type_id)
+Index(f'{FacilityContract.__tablename__}_product_id_ix', FacilityContract.product_id)
 
 
 class CustomerGroup(AuditColumnsMixin, Base):

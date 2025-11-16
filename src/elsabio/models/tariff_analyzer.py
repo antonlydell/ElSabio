@@ -25,6 +25,22 @@ class FacilityType(Enum):
     PRODUCTION = 2
 
 
+class CustomerType(Enum):
+    r"""The available types of customers.
+
+    Members
+    -------
+    PRIVATE_PERSON
+        A private person customer.
+
+    COMPANY
+        A company customer.
+    """
+
+    PRIVATE_PERSON = 1
+    COMPANY = 2
+
+
 class CalcStrategy(Enum):
     r"""The available strategies for the tariff calculations.
 

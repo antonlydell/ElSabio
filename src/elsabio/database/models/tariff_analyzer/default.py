@@ -8,9 +8,10 @@ r"""The default data of the Tariff Analyzer module."""
 # Local
 from elsabio.database.core import Session
 from elsabio.models.tariff_analyzer import CalcStrategy as CalcStrategyEnum
+from elsabio.models.tariff_analyzer import CustomerType as CustomerTypeEnum
 from elsabio.models.tariff_analyzer import FacilityType as FacilityTypeEnum
 
-from .models import CalcStrategy, FacilityType
+from .models import CalcStrategy, CustomerType, FacilityType
 
 # FacilityType
 facility_type_cons = FacilityType(
@@ -22,6 +23,18 @@ facility_type_prod = FacilityType(
     facility_type_id=FacilityTypeEnum.PRODUCTION.value,
     name='Production',
     description='A production facility.',
+)
+
+# CustomerType
+customer_type_private_person = CustomerType(
+    customer_type_id=CustomerTypeEnum.PRIVATE_PERSON.value,
+    name='Private person',
+    description='A private person customer.',
+)
+customer_type_company = CustomerType(
+    customer_type_id=CustomerTypeEnum.COMPANY.value,
+    name='Company',
+    description='A company customer.',
 )
 
 # CalcStrategy
@@ -83,6 +96,9 @@ def add_default_tariff_analyzer_models_to_session(session: Session) -> None:
             # FacilityType
             facility_type_cons,
             facility_type_prod,
+            # CustomerType
+            customer_type_private_person,
+            customer_type_company,
             # CalcStrategy
             per_unit,
             per_year_periodize_over_month_length,
