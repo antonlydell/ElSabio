@@ -8,11 +8,11 @@ r"""The models of the core database tables."""
 # Local
 from .default import add_default_core_models_to_session
 from .models import (
+    AuditColumnsMixin,
     Base,
     Currency,
     CustomRole,
     Email,
-    ModifiedAndCreatedColumnMixin,
     MoneyPrice,
     MoneyTotal,
     Ratio,
@@ -28,11 +28,11 @@ __all__ = [
     # default
     'add_default_core_models_to_session',
     # models
+    'AuditColumnsMixin',
     'Base',
     'Currency',
     'CustomRole',
     'Email',
-    'ModifiedAndCreatedColumnMixin',
     'MoneyPrice',
     'MoneyTotal',
     'Ratio',

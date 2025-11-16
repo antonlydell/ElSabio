@@ -18,9 +18,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 # Local
 from elsabio.database.models.core import (
+    AuditColumnsMixin,
     Base,
     Currency,
-    ModifiedAndCreatedColumnMixin,
     MoneyPrice,
     Ratio,
     SerieType,
@@ -28,7 +28,7 @@ from elsabio.database.models.core import (
 )
 
 
-class FacilityType(ModifiedAndCreatedColumnMixin, Base):
+class FacilityType(AuditColumnsMixin, Base):
     r"""The type of an electricity facility.
 
     Parameters
@@ -78,7 +78,7 @@ class FacilityType(ModifiedAndCreatedColumnMixin, Base):
 Index(f'{FacilityType.__tablename__}_name_uix', FacilityType.name, unique=True)
 
 
-class Facility(ModifiedAndCreatedColumnMixin, Base):
+class Facility(AuditColumnsMixin, Base):
     r"""A facility where electricity is delivered as part of a grid contract.
 
     Parameters
@@ -159,7 +159,7 @@ Index(f'{Facility.__tablename__}_ean_uix', Facility.ean, unique=True)
 Index(f'{Facility.__tablename__}_ean_prod_uix', Facility.ean_prod, unique=True)
 
 
-class FacilityContract(ModifiedAndCreatedColumnMixin, Base):
+class FacilityContract(AuditColumnsMixin, Base):
     r"""Contract related information of a facility valid per month.
 
     Parameters
@@ -236,7 +236,7 @@ Index(
 )
 
 
-class CustomerGroup(ModifiedAndCreatedColumnMixin, Base):
+class CustomerGroup(AuditColumnsMixin, Base):
     r"""A facility is part of a customer group based on its facility contract information.
 
     Parameters
@@ -306,7 +306,7 @@ class CustomerGroup(ModifiedAndCreatedColumnMixin, Base):
 Index(f'{CustomerGroup.__tablename__}_name_uix', CustomerGroup.name, unique=True)
 
 
-class FacilityCustomerGroupLink(ModifiedAndCreatedColumnMixin, Base):
+class FacilityCustomerGroupLink(AuditColumnsMixin, Base):
     r"""The link between a facility and customer group.
 
     Parameters
@@ -383,7 +383,7 @@ Index(
 )
 
 
-class Tariff(ModifiedAndCreatedColumnMixin, Base):
+class Tariff(AuditColumnsMixin, Base):
     r"""An electricity tariff.
 
     Parameters
@@ -554,7 +554,7 @@ Index(f'{Tariff.__tablename__}_name_uix', Tariff.name, unique=True)
 Index(f'{Tariff.__tablename__}_currency_id_ix', Tariff.currency_id)
 
 
-class TariffCostGroup(ModifiedAndCreatedColumnMixin, Base):
+class TariffCostGroup(AuditColumnsMixin, Base):
     r"""A tariff cost group contains a set of tariff components.
 
     Parameters
@@ -658,7 +658,7 @@ Index(
 )
 
 
-class CalcStrategy(ModifiedAndCreatedColumnMixin, Base):
+class CalcStrategy(AuditColumnsMixin, Base):
     r"""The strategy for how a tariff component type should be calculated.
 
     Parameters
@@ -710,7 +710,7 @@ class CalcStrategy(ModifiedAndCreatedColumnMixin, Base):
 Index(f'{CalcStrategy.__tablename__}_name_uix', CalcStrategy.name, unique=True)
 
 
-class TariffComponentType(ModifiedAndCreatedColumnMixin, Base):
+class TariffComponentType(AuditColumnsMixin, Base):
     r"""The type of a tariff component.
 
     Parameters
@@ -811,7 +811,7 @@ Index(
 )
 
 
-class TariffTariffComponentTypeLink(ModifiedAndCreatedColumnMixin, Base):
+class TariffTariffComponentTypeLink(AuditColumnsMixin, Base):
     r"""The tariff component types available to a tariff.
 
     Parameters
@@ -869,7 +869,7 @@ Index(
 )
 
 
-class TariffComponent(ModifiedAndCreatedColumnMixin, Base):
+class TariffComponent(AuditColumnsMixin, Base):
     r"""A tariff component with price information.
 
     Parameters
@@ -985,7 +985,7 @@ Index(
 )
 
 
-class TariffCostGroupCustomerGroupLink(ModifiedAndCreatedColumnMixin, Base):
+class TariffCostGroupCustomerGroupLink(AuditColumnsMixin, Base):
     r"""The link between a tariff cost group and a customer group.
 
     Parameters

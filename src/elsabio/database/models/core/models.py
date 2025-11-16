@@ -11,12 +11,10 @@ from typing import ClassVar
 # Third party
 from sqlalchemy import Identity, Index, Numeric
 from sqlalchemy.orm import Mapped, mapped_column
+from streamlit_passwordless.database.models import AuditColumnsMixin as AuditColumnsMixin
 from streamlit_passwordless.database.models import Base as Base
 from streamlit_passwordless.database.models import CustomRole as CustomRole
 from streamlit_passwordless.database.models import Email as Email
-from streamlit_passwordless.database.models import (
-    ModifiedAndCreatedColumnMixin as ModifiedAndCreatedColumnMixin,
-)
 from streamlit_passwordless.database.models import Role as Role
 from streamlit_passwordless.database.models import User as User
 from streamlit_passwordless.database.models import UserSignIn as UserSignIn
@@ -26,7 +24,7 @@ MoneyPrice = Numeric(20, 6)  # Currency per unit (e.g., per SEK/kWh)
 Ratio = Numeric(9, 6)  # Ratios like reactive power / active power
 
 
-class Currency(ModifiedAndCreatedColumnMixin, Base):
+class Currency(AuditColumnsMixin, Base):
     r"""The currencies of the application.
 
     Parameters
@@ -105,7 +103,7 @@ class Currency(ModifiedAndCreatedColumnMixin, Base):
 Index(f'{Currency.__tablename__}_iso_code_uix', Currency.iso_code, unique=True)
 
 
-class Unit(ModifiedAndCreatedColumnMixin, Base):
+class Unit(AuditColumnsMixin, Base):
     r"""The units of the application.
 
     Parameters
@@ -158,7 +156,7 @@ class Unit(ModifiedAndCreatedColumnMixin, Base):
 Index(f'{Unit.__tablename__}_code_uix', Unit.code, unique=True)
 
 
-class SerieType(ModifiedAndCreatedColumnMixin, Base):
+class SerieType(AuditColumnsMixin, Base):
     r"""The types of meter data series.
 
     Parameters
