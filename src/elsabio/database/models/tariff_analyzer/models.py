@@ -25,6 +25,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.associationproxy import AssociationProxy, association_proxy
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql.expression import true
 
 # Local
 from elsabio.database.models.core import (
@@ -186,6 +187,7 @@ class Product(AuditColumnsMixin, Base):
     description: Mapped[str | None]
 
     facility_contracts: Mapped[list['FacilityContract']] = relationship(back_populates='product')
+    customer_groups: Mapped[list['CustomerGroup']] = relationship(back_populates='product')
 
 
 class Facility(AuditColumnsMixin, Base):
@@ -430,26 +432,39 @@ class CustomerGroup(AuditColumnsMixin, Base):
         The unique name of the customer group. Is indexed. Max length of 150 characters.
 
     min_fuse_size : int or None
-        The minimum fuse size [A] of the customer group (inclusive).
+        The minimum fuse size [A] of the customer group.
 
     max_fuse_size : int or None
-        The maximum fuse size [A] of the customer group (inclusive).
+        The maximum fuse size [A] of the customer group.
 
     min_subscribed_power : float or None
-        The minimum subscribed power of the customer group [kW] (inclusive).
+        The minimum subscribed power of the customer group [kW].
 
     max_subscribed_power : float or None
-        The maximum subscribed power of the customer group [kW] (inclusive).
+        The maximum subscribed power of the customer group [kW].
 
     min_connection_power : float or None
-        The minimum connection power of the customer group [kW] (inclusive).
+        The minimum connection power of the customer group [kW].
 
     max_connection_power : float or None
-        The maximum connection power of the customer group [kW] (inclusive).
+        The maximum connection power of the customer group [kW].
+
+    min_bound_included : bool, default True
+        True if the minimum bound is included in the range when applying the customer
+        group mapping strategy from `mapping_strategy_id` and False to exclude it.
+
+    max_bound_included : bool, default True
+        True if the maximum bound is included in the range when applying the customer
+        group mapping strategy from `mapping_strategy_id` and False to exclude it.
 
     facility_type_id : int
         The type of facility that can be associated with the customer group.
         Foreign key to :attr:`FacilityType.facility_type_id`. Is indexed.
+
+    product_id : int or None
+        The product of a facility contract associated with the customer group. Used
+        for mapping facilities to a customer group based on the product of a facility
+        contract. Is indexed. Foreign key to :attr:`Product.product_id`.
 
     mapping_strategy_id : int
         The ID of the customer group mapping strategy to apply to map facilities to the customer
@@ -481,7 +496,10 @@ class CustomerGroup(AuditColumnsMixin, Base):
         'max_subscribed_power',
         'min_connection_power',
         'max_connection_power',
+        'min_bound_included',
+        'max_bound_included',
         'facility_type_id',
+        'product_id',
         'mapping_strategy_id',
         'description',
         'updated_at',
@@ -500,7 +518,12 @@ class CustomerGroup(AuditColumnsMixin, Base):
     max_subscribed_power: Mapped[float | None]
     min_connection_power: Mapped[float | None]
     max_connection_power: Mapped[float | None]
+    min_bound_included: Mapped[bool] = mapped_column(server_default=true())
+    max_bound_included: Mapped[bool] = mapped_column(server_default=true())
     facility_type_id: Mapped[int] = mapped_column(ForeignKey(FacilityType.facility_type_id))
+    product_id: Mapped[int | None] = mapped_column(
+        ForeignKey(Product.product_id, ondelete='SET NULL')
+    )
     mapping_strategy_id: Mapped[int] = mapped_column(
         ForeignKey(CustomerGroupMappingStrategy.mapping_strategy_id)
     )
@@ -513,12 +536,14 @@ class CustomerGroup(AuditColumnsMixin, Base):
         relationship(back_populates='customer_group', passive_deletes=True)
     )
     facility_type: Mapped[FacilityType] = relationship(back_populates='customer_groups')
+    product: Mapped[Product] = relationship(back_populates='customer_groups')
     mapping_strategy: Mapped[CustomerGroupMappingStrategy] = relationship(
         back_populates='customer_groups'
     )
 
 
 Index(f'{CustomerGroup.__tablename__}_facility_type_id_ix', CustomerGroup.facility_type_id)
+Index(f'{CustomerGroup.__tablename__}_product_id_ix', CustomerGroup.product_id)
 Index(f'{CustomerGroup.__tablename__}_mapping_strategy_id_ix', CustomerGroup.mapping_strategy_id)
 
 

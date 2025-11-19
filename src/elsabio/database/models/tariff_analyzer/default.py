@@ -56,6 +56,11 @@ cg_mapping_strategy_connection_power = CustomerGroupMappingStrategy(
     name='connection_power',
     description='Map facilities to customer groups based on their connection power.',
 )
+cg_mapping_strategy_product = CustomerGroupMappingStrategy(
+    mapping_strategy_id=CustomerGroupMappingStrategyEnum.PRODUCT.value,
+    name='product',
+    description='Map facilities to customer groups based on the product of their facility contract.',
+)
 
 # CalcStrategy
 per_unit = CalcStrategy(
@@ -123,6 +128,7 @@ def add_default_tariff_analyzer_models_to_session(session: Session) -> None:
             cg_mapping_strategy_fuse_size,
             cg_mapping_strategy_subscribed_power,
             cg_mapping_strategy_connection_power,
+            cg_mapping_strategy_product,
             # CalcStrategy
             per_unit,
             per_year_periodize_over_month_length,
