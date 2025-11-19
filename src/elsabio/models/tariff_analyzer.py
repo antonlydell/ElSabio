@@ -54,11 +54,15 @@ class CustomerGroupMappingStrategy(Enum):
 
     CONNECTION_POWER
         Map facilities to customer groups based on their connection power.
+
+    PRODUCT
+        Map facilities to customer groups based on the product of their facility contract.
     """
 
     FUSE_SIZE = 1
     SUBSCRIBED_POWER = 2
     CONNECTION_POWER = 3
+    PRODUCT = 4
 
 
 class CalcStrategy(Enum):
