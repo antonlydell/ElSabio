@@ -26,6 +26,7 @@ from elsabio.config import (
     LogLevel,
     Stream,
 )
+from elsabio.config.tariff_analyzer import DEFAULT_DB_PATH
 from tests.config import STATIC_FILES_CONFIG_BASE_DIR
 
 
@@ -78,6 +79,7 @@ def config_data(tmp_path: Path) -> tuple[str, dict[str, Any]]:
         'private_key': 'bwp_private_key',
         'url': BITWARDEN_PASSWORDLESS_API_URL,
     }
+    tariff_analyzer = {'enabled': True, 'db': DEFAULT_DB_PATH, 'data': {}}
     logging_config = {
         'disabled': False,
         'min_log_level': LogLevel.INFO,
@@ -122,6 +124,7 @@ def config_data(tmp_path: Path) -> tuple[str, dict[str, Any]]:
         'default_language': Language.EN,
         'database': database_config,
         'bwp': bwp_config,
+        'tariff_analyzer': tariff_analyzer,
         'logging': logging_config,
     }
 

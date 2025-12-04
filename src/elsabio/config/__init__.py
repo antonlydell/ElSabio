@@ -12,12 +12,16 @@ from elsabio.config.core import (
     CONFIG_FILE_ENV_VAR,
     CONFIG_FILE_PATH,
     CONFIG_FILENAME,
+    HOME_DIR,
     PROG_NAME,
     SECRETS_FILE_ENV_VAR,
     BaseConfigModel,
     BitwardenPasswordlessConfig,
     DatabaseConfig,
+    ImportMethod,
     Language,
+    PluginConfig,
+    PluginType,
 )
 from elsabio.config.log import (
     LOGGING_DEFAULT_DATETIME_FORMAT,
@@ -35,6 +39,7 @@ from elsabio.config.log import (
     Stream,
     StreamLogHandler,
 )
+from elsabio.config.tariff_analyzer import TariffAnalyzerConfig
 
 # The Public API
 __all__ = [
@@ -47,12 +52,16 @@ __all__ = [
     'CONFIG_FILE_ENV_VAR',
     'CONFIG_FILE_PATH',
     'CONFIG_FILENAME',
+    'HOME_DIR',
     'PROG_NAME',
     'SECRETS_FILE_ENV_VAR',
     'BaseConfigModel',
     'BitwardenPasswordlessConfig',
     'DatabaseConfig',
+    'ImportMethod',
     'Language',
+    'PluginConfig',
+    'PluginType',
     # log
     'LOGGING_DEFAULT_DATETIME_FORMAT',
     'LOGGING_DEFAULT_DIR',
@@ -68,4 +77,6 @@ __all__ = [
     'LogLevel',
     'Stream',
     'StreamLogHandler',
+    # tariff_analyzer
+    'TariffAnalyzerConfig',
 ]

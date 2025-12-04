@@ -12,13 +12,23 @@ from typing import Any
 
 # Third party
 import streamlit_passwordless as stp
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import (
+    AnyHttpUrl,
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    ValidationInfo,
+    field_validator,
+)
 
 # Local
 from elsabio import exceptions
 from elsabio.database import URL, SQLAlchemyError, make_url
 
 PROG_NAME = 'ElSabio'
+
+HOME_DIR = Path.home() / '.elsabio'
 
 CONFIG_DIR = Path.home() / '.config' / PROG_NAME
 
@@ -43,6 +53,20 @@ class Language(StrEnum):
     SV = 'sv'
 
 
+class ImportMethod(StrEnum):
+    r"""The available data import methods."""
+
+    PLUGIN = 'plugin'
+    FILE = 'file'
+
+
+class PluginType(StrEnum):
+    r"""The available types of plugins."""
+
+    SQLALCHEMY = 'sqlalchemy'
+    GENERIC = 'generic'
+
+
 class BaseConfigModel(BaseModel):
     r"""The base model that all configuration models inherit from."""
 
@@ -53,6 +77,46 @@ class BaseConfigModel(BaseModel):
             super().__init__(**kwargs)
         except ValidationError as e:
             raise exceptions.ConfigError(str(e)) from None
+
+
+class PluginConfig(BaseConfigModel):  # type: ignore [no-redef]
+    r"""The configuration of a plugin.
+
+    Parameters
+    ----------
+    name : str
+        The name of the plugin.
+
+    type : elsabio.config.PluginType, default elsabio.config.PluginType.GENERIC
+        The type of plugin.
+
+    kwargs : dict[str, Any], default {}
+        The keyword arguments to pass along to the plugin.
+    """
+
+    name: str
+    type: PluginType = PluginType.GENERIC
+    kwargs: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator('kwargs')
+    @classmethod
+    def validate_kwargs(cls, v: dict[str, Any], info: ValidationInfo) -> dict[str, Any]:
+        r"""Validate the keyword arguments to the plugin."""
+
+        if info.data.get('type') != PluginType.SQLALCHEMY:
+            return v
+
+        if 'db_url' not in v:
+            raise ValueError(
+                f'Missing required kwarg "db_url" for SQLAlchemy plugin with name "{info.data["name"]}"!'
+            )
+
+        try:
+            v['db_url'] = make_url(v['db_url'])
+        except SQLAlchemyError as e:
+            raise ValueError(f'{type(e).__name__} : {e!s}') from None
+
+        return v
 
 
 class DatabaseConfig(BaseConfigModel):

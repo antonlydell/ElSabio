@@ -33,6 +33,7 @@ from elsabio.config.core import (
     Language,
 )
 from elsabio.config.log import LoggingConfig
+from elsabio.config.tariff_analyzer import TariffAnalyzerConfig
 
 
 class ConfigManager(BaseSettings):
@@ -40,7 +41,7 @@ class ConfigManager(BaseSettings):
 
     Parameters
     ----------
-    config_file_path : Path or None, default None
+    config_file_path : pathlib.Path or None, default None
         The path to the config file from which the configuration was loaded.
         The special path '-' specifies that the config was loaded from stdin.
         If None the default configuration was loaded.
@@ -48,19 +49,22 @@ class ConfigManager(BaseSettings):
     timezone : zoneinfo.ZoneInfo, default zoneinfo.ZoneInfo('Europe/Stockholm')
         The timezone where the application is used.
 
-    languages : tuple[elsabio.Language, ...], default (elsabio.Language.EN,)
+    languages : tuple[elsabio.config.Language, ...], default (elsabio.config.Language.EN,)
         The languages to make available to the application. The default is English.
 
-    default_language : elsabio.Language, default elsabio.Language.EN
+    default_language : elsabio.config.Language, default elsabio.config.Language.EN
         The default language to use when the application first loads. The default is English.
 
-    database : elsabio.DatabaseConfig
+    database : elsabio.config.DatabaseConfig
         The database configuration.
 
-    bwp : elsabio.BitwardenPasswordlessConfig
+    bwp : elsabio.config.BitwardenPasswordlessConfig
         The configuration for Bitwarden Passwordless.dev.
 
-    logging : elsabio.LoggingConfig
+    tariff_analyzer : elsabio.config.TariffAnalyzerConfig
+        The configuration for the Tariff Analyzer module.
+
+    logging : elsabio.config.LoggingConfig
         The logging configuration.
     """
 
@@ -72,6 +76,7 @@ class ConfigManager(BaseSettings):
     default_language: Language = Language.EN
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     bwp: BitwardenPasswordlessConfig
+    tariff_analyzer: TariffAnalyzerConfig = Field(default_factory=TariffAnalyzerConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
 
     def __init__(self, **kwargs: Any) -> None:
