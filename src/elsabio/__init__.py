@@ -18,6 +18,7 @@ from elsabio.exceptions import (
     ConfigFileNotFoundError,
     ElSabioError,
     ParseConfigError,
+    PluginError,
     SecretsFileNotFoundError,
 )
 from elsabio.metadata import (
@@ -37,6 +38,7 @@ __all__ = [
     'ConfigFileNotFoundError',
     'ElSabioError',
     'ParseConfigError',
+    'PluginError',
     'SecretsFileNotFoundError',
     # metadata
     '__releasedate__',

@@ -28,16 +28,20 @@ class ElSabioError(Exception):
 
 
 class ConfigError(ElSabioError):
-    """Errors related to the configuration of ElSabio."""
+    r"""Errors related to the configuration of ElSabio."""
 
 
 class ConfigFileNotFoundError(ConfigError):
-    """If the config file cannot be found."""
+    r"""If the config file cannot be found."""
 
 
 class ParseConfigError(ConfigError):
-    """If the config or secrets file cannot be parsed correctly."""
+    r"""If the config or secrets file cannot be parsed correctly."""
 
 
 class SecretsFileNotFoundError(ConfigError):
-    """If the secrets file cannot be found."""
+    r"""If the secrets file cannot be found."""
+
+
+class PluginError(ElSabioError):
+    r"""Errors related to working with plugins to ElSabio."""
