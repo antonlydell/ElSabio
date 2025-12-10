@@ -47,8 +47,11 @@ class FacilityType(AuditColumnsMixin, Base):
     facility_type_id : int
         The unique ID of the facility type. The primary key of the table.
 
-    name : str
-        The unique name of the facility type. Is indexed. Max length of 150 characters.
+    code : str
+        The unique code of the facility type. Is indexed. Max length of 64 characters.
+
+    name : str or None
+        A descriptive name of the facility type.
 
     description : str or None
         A description of the facility type.
@@ -69,6 +72,7 @@ class FacilityType(AuditColumnsMixin, Base):
 
     columns__repr__: ClassVar[tuple[str, ...]] = (
         'facility_type_id',
+        'code',
         'name',
         'description',
         'updated_at',
@@ -80,7 +84,8 @@ class FacilityType(AuditColumnsMixin, Base):
     __tablename__ = 'ta_facility_type'
 
     facility_type_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
-    name: Mapped[str] = mapped_column(String(150), unique=True)
+    code: Mapped[str] = mapped_column(String(64), unique=True)
+    name: Mapped[str | None]
     description: Mapped[str | None]
 
     facilities: Mapped[list['Facility']] = relationship(back_populates='facility_type')
@@ -95,8 +100,11 @@ class CustomerType(AuditColumnsMixin, Base):
     customer_type_id : int
         The unique ID of the customer type. The primary key of the table.
 
-    name : str
-        The unique name of the customer type. Is indexed. Max length of 150 characters.
+    code : str
+        The unique code of the customer type. Is indexed. Max length of 64 characters.
+
+    name : str or None
+        A descriptive name of the customer type.
 
     description : str or None
         A description of the customer type.
@@ -117,6 +125,7 @@ class CustomerType(AuditColumnsMixin, Base):
 
     columns__repr__: ClassVar[tuple[str, ...]] = (
         'customer_type_id',
+        'code',
         'name',
         'description',
         'updated_at',
@@ -128,7 +137,8 @@ class CustomerType(AuditColumnsMixin, Base):
     __tablename__ = 'ta_customer_type'
 
     customer_type_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
-    name: Mapped[str] = mapped_column(String(150), unique=True)
+    code: Mapped[str] = mapped_column(String(64), unique=True)
+    name: Mapped[str | None]
     description: Mapped[str | None]
 
     facility_contracts: Mapped[list['FacilityContract']] = relationship(
@@ -380,9 +390,12 @@ class CustomerGroupMappingStrategy(AuditColumnsMixin, Base):
     mapping_strategy_id : int
         The unique ID of the customer group mapping strategy. The primary key of the table.
 
-    name : str
-        The unique name of the customer group mapping strategy. Is indexed.
-        Max length of 150 characters.
+    code : str
+        The unique code of the customer group mapping strategy. Is indexed.
+        Max length of 64 characters.
+
+    name : str or None
+        A descriptive name of the customer group mapping strategy.
 
     description : str or None
         A description of the customer group mapping strategy.
@@ -403,6 +416,7 @@ class CustomerGroupMappingStrategy(AuditColumnsMixin, Base):
 
     columns__repr__: ClassVar[tuple[str, ...]] = (
         'mapping_strategy_id',
+        'code',
         'name',
         'description',
         'updated_at',
@@ -414,7 +428,8 @@ class CustomerGroupMappingStrategy(AuditColumnsMixin, Base):
     __tablename__ = 'ta_customer_group_mapping_strategy'
 
     mapping_strategy_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
-    name: Mapped[str] = mapped_column(String(150), unique=True)
+    code: Mapped[str] = mapped_column(String(64), unique=True)
+    name: Mapped[str | None]
     description: Mapped[str | None]
 
     customer_groups: Mapped[list['CustomerGroup']] = relationship(back_populates='mapping_strategy')
@@ -907,8 +922,11 @@ class CalcStrategy(AuditColumnsMixin, Base):
     calc_strategy_id : int
         The unique ID of the calculation strategy. The primary key of the table.
 
-    name : str
-        The unique name of the strategy. Is indexed. Max length of 150 characters.
+    code : str
+        The unique code of the calculation strategy. Is indexed. Max length of 64 characters.
+
+    name : str or None
+        A descriptive name of the calculation strategy.
 
     description : str or None
         A description of the calculation strategy.
@@ -929,6 +947,7 @@ class CalcStrategy(AuditColumnsMixin, Base):
 
     columns__repr__: ClassVar[tuple[str, ...]] = (
         'calc_strategy_id',
+        'code',
         'name',
         'description',
         'updated_at',
@@ -940,7 +959,8 @@ class CalcStrategy(AuditColumnsMixin, Base):
     __tablename__ = 'ta_calc_strategy'
 
     calc_strategy_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
-    name: Mapped[str] = mapped_column(String(150), unique=True)
+    code: Mapped[str] = mapped_column(String(64), unique=True)
+    name: Mapped[str | None]
     description: Mapped[str | None]
 
     tariff_component_types: Mapped[list['TariffComponentType']] = relationship(

@@ -158,8 +158,11 @@ class SerieType(AuditColumnsMixin, Base):
     serie_type_id : int
         The unique ID of the serie type. The primary key of the table.
 
-    name : str
-        The unique name of the serie type. Is indexed. Max length of 150 characters.
+    code : str
+        The unique code of the serie type. Is indexed. Max length of 64 characters.
+
+    name : str or None
+        A descriptive name of the serie type.
 
     external_id : str or None
         The unique external ID of the serie type. Is indexed. Max length of 150 characters.
@@ -182,7 +185,8 @@ class SerieType(AuditColumnsMixin, Base):
     """
 
     columns__repr__: ClassVar[tuple[str, ...]] = (
-        'currency_id',
+        'serie_type_id',
+        'code',
         'name',
         'external_id',
         'description',
@@ -195,6 +199,7 @@ class SerieType(AuditColumnsMixin, Base):
     __tablename__ = 'serie_type'
 
     serie_type_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
-    name: Mapped[str] = mapped_column(String(150), unique=True)
+    code: Mapped[str] = mapped_column(String(64), unique=True)
+    name: Mapped[str | None]
     external_id: Mapped[str | None] = mapped_column(String(150), unique=True)
     description: Mapped[str | None]
