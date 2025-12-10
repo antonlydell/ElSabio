@@ -6,7 +6,12 @@
 r"""The models of the core database tables."""
 
 # Local
-from .default import add_default_core_models_to_session
+from .default import (
+    add_default_core_models_to_session,
+    default_currencies,
+    default_serie_types,
+    default_units,
+)
 from .models import (
     AuditColumnsMixin,
     Base,
@@ -27,6 +32,9 @@ from .models import (
 __all__ = [
     # default
     'add_default_core_models_to_session',
+    'default_currencies',
+    'default_serie_types',
+    'default_units',
     # models
     'AuditColumnsMixin',
     'Base',

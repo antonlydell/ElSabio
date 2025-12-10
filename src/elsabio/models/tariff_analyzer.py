@@ -6,14 +6,14 @@
 r"""The data models of the Tariff Analyzer module."""
 
 # Standard library
-from enum import Enum
+from enum import StrEnum
 from typing import ClassVar
 
 # Local
 from elsabio.models.core import BaseDataFrameModel, StrMapping
 
 
-class FacilityType(Enum):
+class FacilityTypeEnum(StrEnum):
     r"""The available types of facilities.
 
     Members
@@ -25,11 +25,11 @@ class FacilityType(Enum):
         A production facility.
     """
 
-    CONSUMPTION = 1
-    PRODUCTION = 2
+    CONSUMPTION = 'consumption'
+    PRODUCTION = 'production'
 
 
-class CustomerType(Enum):
+class CustomerTypeEnum(StrEnum):
     r"""The available types of customers.
 
     Members
@@ -41,11 +41,11 @@ class CustomerType(Enum):
         A company customer.
     """
 
-    PRIVATE_PERSON = 1
-    COMPANY = 2
+    PRIVATE_PERSON = 'private_person'
+    COMPANY = 'company'
 
 
-class CustomerGroupMappingStrategy(Enum):
+class CustomerGroupMappingStrategyEnum(StrEnum):
     r"""The available types of customer group mapping strategies.
 
     Members
@@ -63,13 +63,13 @@ class CustomerGroupMappingStrategy(Enum):
         Map facilities to customer groups based on the product of their facility contract.
     """
 
-    FUSE_SIZE = 1
-    SUBSCRIBED_POWER = 2
-    CONNECTION_POWER = 3
-    PRODUCT = 4
+    FUSE_SIZE = 'fuse_size'
+    SUBSCRIBED_POWER = 'subscribed_power'
+    CONNECTION_POWER = 'connection_power'
+    PRODUCT = 'product'
 
 
-class CalcStrategy(Enum):
+class CalcStrategyEnum(StrEnum):
     r"""The available strategies for the tariff calculations.
 
     Members
@@ -97,12 +97,16 @@ class CalcStrategy(Enum):
         in relation to the active power consumption. E.g. SEK/kVAr/year
     """
 
-    PER_UNIT = 1
-    PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH = 2
-    PER_UNIT_PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH = 3
-    ACTIVE_POWER_OVERSHOOT_SUBSCRIBED_POWER = 4
-    REACTIVE_POWER_CONS_OVERSHOOT_ACTIVE_POWER_CONS = 5
-    REACTIVE_POWER_PROD_OVERSHOOT_ACTIVE_POWER_CONS = 6
+    PER_UNIT = 'per_unit'
+    PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH = 'per_year_periodize_over_month_length'
+    PER_UNIT_PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH = 'per_unit_per_year_periodize_over_month_length'
+    ACTIVE_POWER_OVERSHOOT_SUBSCRIBED_POWER = 'active_power_overshoot_subscribed_power'
+    REACTIVE_POWER_CONS_OVERSHOOT_ACTIVE_POWER_CONS = (
+        'reactive_power_cons_overshoot_active_power_cons'
+    )
+    REACTIVE_POWER_PROD_OVERSHOOT_ACTIVE_POWER_CONS = (
+        'reactive_power_prod_overshoot_active_power_cons'
+    )
 
 
 class FacilityMappingDataFrameModel(BaseDataFrameModel):

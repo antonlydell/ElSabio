@@ -7,6 +7,7 @@ r"""The core data models of ElSabio."""
 
 # Standard library
 from collections.abc import Mapping
+from enum import StrEnum
 from typing import Any, ClassVar
 
 # Third party
@@ -20,6 +21,97 @@ from elsabio.exceptions import ElSabioError
 
 type StrMapping = Mapping[str, str]
 type ColumnList = list[str]
+
+
+class SerieTypeEnum(StrEnum):
+    r"""The available meter data serie types.
+
+    Members
+    -------
+    ACTIVE_ENERGY_CONS
+        Active energy consumption.
+
+    ACTIVE_ENERGY_PROD
+        Active energy production.
+
+    REACTIVE_ENERGY_CONS
+        Reactive energy consumption.
+
+    REACTIVE_ENERGY_PROD
+        Reactive energy production.
+
+    APPARENT_ENERGY_CONS
+        Apparent energy consumption.
+
+    APPARENT_ENERGY_PROD
+        Apparent energy production.
+
+    ACTIVE_POWER_CONS
+        Active power consumption.
+
+    ACTIVE_POWER_PROD
+        Active power production.
+
+    REACTIVE_POWER_CONS
+        Reactive power consumption.
+
+    REACTIVE_POWER_PROD
+        Reactive power production.
+
+    APPARENT_POWER_CONS
+        Apparent power consumption.
+
+    APPARENT_POWER_PROD
+        Apparent power production.
+
+    MAX_ACTIVE_POWER_CONS
+        Maximum active power consumption.
+
+    MAX_ACTIVE_POWER_PROD
+        Maximum active power production.
+
+    MAX_REACTIVE_POWER_CONS
+        Maximum reactive power consumption.
+
+    MAX_REACTIVE_POWER_PROD
+        Maximum reactive power production.
+
+    MAX_APPARENT_POWER_CONS
+        Maximum apparent power consumption.
+
+    MAX_APPARENT_POWER_PROD
+        Maximum apparent power production.
+
+    MAX_DEB_ACTIVE_POWER_CONS_HIGH_LOAD
+        Maximum debitable active power consumption during the high load period.
+
+    MAX_DEB_ACTIVE_POWER_CONS_LOW_LOAD
+        Maximum debitable active power consumption during the low load period.
+    """
+
+    ACTIVE_ENERGY_CONS = 'active_energy_cons'
+    ACTIVE_ENERGY_PROD = 'active_energy_prod'
+    REACTIVE_ENERGY_CONS = 'reactive_energy_cons'
+    REACTIVE_ENERGY_PROD = 'reactive_energy_prod'
+    APPARENT_ENERGY_CONS = 'apparent_energy_cons'
+    APPARENT_ENERGY_PROD = 'apparent_energy_prod'
+
+    ACTIVE_POWER_CONS = 'active_power_cons'
+    ACTIVE_POWER_PROD = 'active_power_prod'
+    REACTIVE_POWER_CONS = 'reactive_power_cons'
+    REACTIVE_POWER_PROD = 'reactive_power_prod'
+    APPARENT_POWER_CONS = 'apparent_power_cons'
+    APPARENT_POWER_PROD = 'apparent_power_prod'
+
+    MAX_ACTIVE_POWER_CONS = 'max_active_power_cons'
+    MAX_ACTIVE_POWER_PROD = 'max_active_power_prod'
+    MAX_REACTIVE_POWER_CONS = 'max_reactive_power_cons'
+    MAX_REACTIVE_POWER_PROD = 'max_reactive_power_prod'
+    MAX_APPARENT_POWER_CONS = 'max_apparent_power_cons'
+    MAX_APPARENT_POWER_PROD = 'max_apparent_power_prod'
+
+    MAX_DEB_ACTIVE_POWER_CONS_HIGH_LOAD = 'max_deb_active_power_cons_high_load'
+    MAX_DEB_ACTIVE_POWER_CONS_LOW_LOAD = 'max_deb_active_power_cons_low_load'
 
 
 class BaseModel(PydanticBaseModel):

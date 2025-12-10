@@ -7,103 +7,115 @@ r"""The default data of the Tariff Analyzer module."""
 
 # Local
 from elsabio.database.core import Session
-from elsabio.models.tariff_analyzer import CalcStrategy as CalcStrategyEnum
 from elsabio.models.tariff_analyzer import (
-    CustomerGroupMappingStrategy as CustomerGroupMappingStrategyEnum,
+    CalcStrategyEnum,
+    CustomerGroupMappingStrategyEnum,
+    CustomerTypeEnum,
+    FacilityTypeEnum,
 )
-from elsabio.models.tariff_analyzer import CustomerType as CustomerTypeEnum
-from elsabio.models.tariff_analyzer import FacilityType as FacilityTypeEnum
 
 from .models import CalcStrategy, CustomerGroupMappingStrategy, CustomerType, FacilityType
 
 # FacilityType
-facility_type_cons = FacilityType(
-    facility_type_id=FacilityTypeEnum.CONSUMPTION.value,
-    name='Consumption',
-    description='A consumption facility.',
-)
-facility_type_prod = FacilityType(
-    facility_type_id=FacilityTypeEnum.PRODUCTION.value,
-    name='Production',
-    description='A production facility.',
+default_facility_types = (
+    {
+        'code': FacilityTypeEnum.CONSUMPTION,
+        'name': 'Consumption',
+        'description': 'A consumption facility.',
+    },
+    {
+        'code': FacilityTypeEnum.PRODUCTION,
+        'name': 'Production',
+        'description': 'A production facility.',
+    },
 )
 
 # CustomerType
-customer_type_private_person = CustomerType(
-    customer_type_id=CustomerTypeEnum.PRIVATE_PERSON.value,
-    name='Private person',
-    description='A private person customer.',
-)
-customer_type_company = CustomerType(
-    customer_type_id=CustomerTypeEnum.COMPANY.value,
-    name='Company',
-    description='A company customer.',
+default_customer_types = (
+    {
+        'code': CustomerTypeEnum.PRIVATE_PERSON,
+        'name': 'Private person',
+        'description': 'A private person customer.',
+    },
+    {
+        'code': CustomerTypeEnum.COMPANY,
+        'name': 'Company',
+        'description': 'A company customer.',
+    },
 )
 
 # CustomerGroupMappingStrategy
-cg_mapping_strategy_fuse_size = CustomerGroupMappingStrategy(
-    mapping_strategy_id=CustomerGroupMappingStrategyEnum.FUSE_SIZE.value,
-    name='fuse_size',
-    description='Map facilities to customer groups based on their contracted fuse size.',
-)
-cg_mapping_strategy_subscribed_power = CustomerGroupMappingStrategy(
-    mapping_strategy_id=CustomerGroupMappingStrategyEnum.SUBSCRIBED_POWER.value,
-    name='subscribed_power',
-    description='Map facilities to customer groups based on their subscribed power.',
-)
-cg_mapping_strategy_connection_power = CustomerGroupMappingStrategy(
-    mapping_strategy_id=CustomerGroupMappingStrategyEnum.CONNECTION_POWER.value,
-    name='connection_power',
-    description='Map facilities to customer groups based on their connection power.',
-)
-cg_mapping_strategy_product = CustomerGroupMappingStrategy(
-    mapping_strategy_id=CustomerGroupMappingStrategyEnum.PRODUCT.value,
-    name='product',
-    description='Map facilities to customer groups based on the product of their facility contract.',
+default_customer_group_mapping_strategies = (
+    {
+        'code': CustomerGroupMappingStrategyEnum.FUSE_SIZE,
+        'name': 'Fuse Size',
+        'description': 'Map facilities to customer groups based on their contracted fuse size.',
+    },
+    {
+        'code': CustomerGroupMappingStrategyEnum.SUBSCRIBED_POWER,
+        'name': 'Subscribed Power',
+        'description': 'Map facilities to customer groups based on their subscribed power.',
+    },
+    {
+        'code': CustomerGroupMappingStrategyEnum.CONNECTION_POWER,
+        'name': 'Connection Power',
+        'description': 'Map facilities to customer groups based on their connection power.',
+    },
+    {
+        'code': CustomerGroupMappingStrategyEnum.PRODUCT,
+        'name': 'Product',
+        'description': (
+            'Map facilities to customer groups based on the product of their facility contract.'
+        ),
+    },
 )
 
 # CalcStrategy
-per_unit = CalcStrategy(
-    calc_strategy_id=CalcStrategyEnum.PER_UNIT.value,
-    name='per_unit',
-    description='A cost per unit energy or power. E.g. SEK/kWh or SEK/kW',
-)
-per_year_periodize_over_month_length = CalcStrategy(
-    calc_strategy_id=CalcStrategyEnum.PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH.value,
-    name='per_year_periodize_over_month_length',
-    description=(
-        'A cost per year that is periodizsed per month based on '
-        'the length of the month in proportion to the year. E.g. SEK/year'
-    ),
-)
-per_unit_per_year_periodize_over_month_length = CalcStrategy(
-    calc_strategy_id=CalcStrategyEnum.PER_UNIT_PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH.value,
-    name='per_unit_per_year_periodize_over_month_length',
-    description=(
-        'A cost per unit energy or power per year that is periodizsed per month based on '
-        'the length of the month in proportion to the year. E.g. SEK/kW/year'
-    ),
-)
-active_power_overshoot_subscribed_power = CalcStrategy(
-    calc_strategy_id=CalcStrategyEnum.ACTIVE_POWER_OVERSHOOT_SUBSCRIBED_POWER.value,
-    name='active_power_overshoot_subscribed_power',
-    description='A cost for active power exceeding the subscribed power. E.g. SEK/kW/month',
-)
-reactive_power_cons_overshoot_active_power_cons = CalcStrategy(
-    calc_strategy_id=CalcStrategyEnum.REACTIVE_POWER_CONS_OVERSHOOT_ACTIVE_POWER_CONS.value,
-    name='reactive_power_cons_overshoot_active_power_cons',
-    description=(
-        'A cost for consuming reactive power exceeding the allowed limit '
-        'in relation to the active power consumption. E.g. SEK/kVAr/year'
-    ),
-)
-reactive_power_prod_overshoot_active_power_cons = CalcStrategy(
-    calc_strategy_id=CalcStrategyEnum.REACTIVE_POWER_PROD_OVERSHOOT_ACTIVE_POWER_CONS.value,
-    name='reactive_power_prod_overshoot_active_power_cons',
-    description=(
-        'A cost for producing reactive power exceeding the allowed limit '
-        'in relation to the active power consumption. E.g. SEK/kVAr/year'
-    ),
+default_calc_strategies = (
+    {
+        'code': CalcStrategyEnum.PER_UNIT,
+        'name': 'Per Unit',
+        'description': 'A cost per unit energy or power. E.g. SEK/kWh or SEK/kW',
+    },
+    {
+        'code': CalcStrategyEnum.PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH,
+        'name': 'Per Year Periodize Over Month Length',
+        'description': (
+            'A cost per year that is periodizsed per month based on '
+            'the length of the month in proportion to the year. E.g. SEK/year'
+        ),
+    },
+    {
+        'code': CalcStrategyEnum.PER_UNIT_PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH,
+        'name': 'Per Unit Per Year Periodize Over Month Length',
+        'description': (
+            'A cost per unit energy or power per year that is periodizsed per month based on '
+            'the length of the month in proportion to the year. E.g. SEK/kW/year'
+        ),
+    },
+    {
+        'code': CalcStrategyEnum.ACTIVE_POWER_OVERSHOOT_SUBSCRIBED_POWER,
+        'name': 'Active Power Overshoot Subscribed Power',
+        'description': (
+            'A cost for active power exceeding the subscribed power. E.g. SEK/kW/month'
+        ),
+    },
+    {
+        'code': CalcStrategyEnum.REACTIVE_POWER_CONS_OVERSHOOT_ACTIVE_POWER_CONS,
+        'name': 'Reactive Power Consumption Overshoot Active Power Consumption',
+        'description': (
+            'A cost for consuming reactive power exceeding the allowed limit '
+            'in relation to the active power consumption. E.g. SEK/kVAr/year'
+        ),
+    },
+    {
+        'code': CalcStrategyEnum.REACTIVE_POWER_PROD_OVERSHOOT_ACTIVE_POWER_CONS,
+        'name': 'Reactive Power Production Overshoot Active Power Consumption',
+        'description': (
+            'A cost for producing reactive power exceeding the allowed limit '
+            'in relation to the active power consumption. E.g. SEK/kVAr/year'
+        ),
+    },
 )
 
 
@@ -116,25 +128,9 @@ def add_default_tariff_analyzer_models_to_session(session: Session) -> None:
         An active database session.
     """
 
+    session.add_all(FacilityType(**item) for item in default_facility_types)
+    session.add_all(CustomerType(**item) for item in default_facility_types)
     session.add_all(
-        (
-            # FacilityType
-            facility_type_cons,
-            facility_type_prod,
-            # CustomerType
-            customer_type_private_person,
-            customer_type_company,
-            # CustomerGroupMappingStrategy
-            cg_mapping_strategy_fuse_size,
-            cg_mapping_strategy_subscribed_power,
-            cg_mapping_strategy_connection_power,
-            cg_mapping_strategy_product,
-            # CalcStrategy
-            per_unit,
-            per_year_periodize_over_month_length,
-            per_unit_per_year_periodize_over_month_length,
-            active_power_overshoot_subscribed_power,
-            reactive_power_cons_overshoot_active_power_cons,
-            reactive_power_prod_overshoot_active_power_cons,
-        )
+        CustomerGroupMappingStrategy(**item) for item in default_customer_group_mapping_strategies
     )
+    session.add_all(CalcStrategy(**item) for item in default_calc_strategies)

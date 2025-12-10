@@ -6,7 +6,13 @@
 r"""The database models of the Tariff Analyzer module."""
 
 # Local
-from .default import add_default_tariff_analyzer_models_to_session
+from .default import (
+    add_default_tariff_analyzer_models_to_session,
+    default_calc_strategies,
+    default_customer_group_mapping_strategies,
+    default_customer_types,
+    default_facility_types,
+)
 from .models import (
     CalcStrategy,
     CustomerGroup,
@@ -29,6 +35,10 @@ from .models import (
 __all__ = [
     # default
     'add_default_tariff_analyzer_models_to_session',
+    'default_calc_strategies',
+    'default_customer_group_mapping_strategies',
+    'default_customer_types',
+    'default_facility_types',
     # models
     'CalcStrategy',
     'CustomerGroup',
