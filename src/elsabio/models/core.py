@@ -6,7 +6,7 @@
 r"""The core data models of ElSabio."""
 
 # Standard library
-from collections.abc import Mapping
+from collections.abc import Hashable, Mapping
 from enum import StrEnum
 from typing import Any, ClassVar
 
@@ -19,7 +19,7 @@ from streamlit_passwordless import User as User
 # Local
 from elsabio.exceptions import ElSabioError
 
-type StrMapping = Mapping[str, str]
+type DtypeMapping = Mapping[Hashable, str]
 type ColumnList = list[str]
 
 
@@ -152,7 +152,7 @@ class BaseDataFrameModel(BaseModel):
         The contents of the model as a DataFrame.
     """
 
-    dtypes: ClassVar[StrMapping] = {}
+    dtypes: ClassVar[DtypeMapping] = {}
     index_cols: ClassVar[ColumnList] = []
     parse_dates: ClassVar[ColumnList] = []
 

@@ -10,7 +10,7 @@ from enum import StrEnum
 from typing import ClassVar
 
 # Local
-from elsabio.models.core import BaseDataFrameModel, StrMapping
+from elsabio.models.core import BaseDataFrameModel, DtypeMapping
 
 
 class FacilityTypeEnum(StrEnum):
@@ -124,7 +124,7 @@ class FacilityMappingDataFrameModel(BaseDataFrameModel):
     c_facility_id: ClassVar[str] = 'facility_id'
     c_ean: ClassVar[str] = 'ean'
 
-    dtypes: ClassVar[StrMapping] = {c_facility_id: 'uint32[pyarrow]', c_ean: 'uint64[pyarrow]'}
+    dtypes: ClassVar[DtypeMapping] = {c_facility_id: 'uint32[pyarrow]', c_ean: 'uint64[pyarrow]'}
 
 
 class FacilityDataFrameModel(BaseDataFrameModel):
@@ -158,7 +158,7 @@ class FacilityDataFrameModel(BaseDataFrameModel):
     c_name: ClassVar[str] = 'name'
     c_description: ClassVar[str] = 'description'
 
-    dtypes: ClassVar[StrMapping] = {
+    dtypes: ClassVar[DtypeMapping] = {
         c_facility_id: 'uint32[pyarrow]',
         c_ean: 'uint64[pyarrow]',
         c_ean_prod: 'uint64[pyarrow]',
@@ -191,7 +191,7 @@ class ProductDataFrameModel(BaseDataFrameModel):
     c_name: ClassVar[str] = 'name'
     c_description: ClassVar[str] = 'description'
 
-    dtypes: ClassVar[StrMapping] = {
+    dtypes: ClassVar[DtypeMapping] = {
         c_product_id: 'uint16[pyarrow]',
         c_external_id: 'uint32[pyarrow]',
         c_name: 'string[pyarrow]',
@@ -240,7 +240,7 @@ class FacilityContractImportDataFrameModel(BaseDataFrameModel):
     c_customer_type_id: ClassVar[str] = 'customer_type_id'
     c_ext_product_id: ClassVar[str] = 'ext_product_id'
 
-    dtypes: ClassVar[StrMapping] = {
+    dtypes: ClassVar[DtypeMapping] = {
         c_ean: 'uint64[pyarrow]',
         c_fuse_size: 'uint16[pyarrow]',
         c_subscribed_power: 'float64[pyarrow]',
@@ -292,7 +292,7 @@ class FacilityContractDataFrameModel(BaseDataFrameModel):
     c_customer_type_id: ClassVar[str] = 'customer_type_id'
     c_product_id: ClassVar[str] = 'product_id'
 
-    dtypes: ClassVar[StrMapping] = {
+    dtypes: ClassVar[DtypeMapping] = {
         c_facility_id: 'uint32[pyarrow]',
         c_fuse_size: 'uint16[pyarrow]',
         c_subscribed_power: 'float64[pyarrow]',
@@ -332,7 +332,7 @@ class SerieValueDataFrameModel(BaseDataFrameModel):
     c_date_id: ClassVar[str] = 'date_id'
     c_serie_value: ClassVar[str] = 'serie_value'
 
-    dtypes: ClassVar[StrMapping] = {
+    dtypes: ClassVar[DtypeMapping] = {
         c_serie_type_id: 'uint8[pyarrow]',
         c_facility_id: 'uint32[pyarrow]',
         c_ean: 'uint64[pyarrow]',
