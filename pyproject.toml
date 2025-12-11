@@ -62,6 +62,7 @@ dependencies = [
 
 [project.scripts]
 elsabio-web = "elsabio.app.cli:main"
+elsabio = "elsabio.cli.main:main"
 
 [project.urls]
 "Bug Tracker" = "https://github.com/antonlydell/ElSabio/issues"
