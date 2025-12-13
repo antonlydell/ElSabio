@@ -20,7 +20,7 @@ from elsabio.datetime import parse_date_range_expression
 from elsabio.exceptions import ElSabioError
 
 TARIFF_ANALYZER_DIR = HOME_DIR / 'tariff_analyzer'
-DEFAULT_DB_PATH = TARIFF_ANALYZER_DIR / 'tariff_analyzer.duckdb'
+DEFAULT_DATA_DIR = TARIFF_ANALYZER_DIR / 'data'
 
 
 class DataSource(StrEnum):
@@ -46,7 +46,8 @@ class DataSourceConfig(BaseConfigModel):
 
     path : pathlib.Path
         The path to the directory where data files to import are located if
-        `method` is :attr:ImportMethod.FILE`.
+        `method` is :attr:ImportMethod.FILE`, or the directory where the input
+        data is temporarily saved before import if `method` is :attr:ImportMethod.PLUGIN`.
 
     interval : tuple[date, date | None] | None, default None
         The interval in which to import data if `method` is :attr:ImportMethod.PLUGIN`.
@@ -57,19 +58,16 @@ class DataSourceConfig(BaseConfigModel):
     """
 
     method: ImportMethod
-    path: Path | None = Field(default=None, validate_default=True)
+    path: Path
     interval: tuple[date, date | None] | None = None
     plugin: PluginConfig | None = Field(default=None, validate_default=True)
 
     @field_validator('path')
     @classmethod
-    def validate_path(cls, path: Path | None, info: ValidationInfo) -> Path | None:
-        r"""Validate the plugin configuration."""
+    def validate_path(cls, path: Path) -> Path | None:
+        r"""Validate the `path` attribute."""
 
-        if path is None:
-            if (method := info.data.get('method')) == ImportMethod.FILE:
-                raise ValueError(f'No path specified and method = "{method}"!')
-            return path
+        path = path.expanduser().resolve()
 
         if not path.exists():
             raise ValueError(f'The import path = "{path}" does not exist!')
@@ -77,7 +75,7 @@ class DataSourceConfig(BaseConfigModel):
         if not path.is_dir():
             raise ValueError(f'The import path = "{path}" is not a directory!')
 
-        return path.expanduser().resolve()
+        return path
 
     @field_validator('interval', mode='before')
     @classmethod
@@ -121,23 +119,32 @@ class TariffAnalyzerConfig(BaseConfigModel):
     enabled : bool, default True
         True if the Tariff Analyzer module is enabled and False otherwise.
 
-    db : pathlib.Path, default '~/.elsabio/tariff_analyzer/tariff_analyzer.duckdb'
-        The path to the DuckDB database of the Tariff Analyzer module.
+    data_dir : pathlib.Path, default '~/.elsabio/tariff_analyzer/data'
+        The path to the data directory of the Tariff Analyzer module
+        where the imported meter data will reside.
 
     data : dict[elsabio.config.tariff_analyzer.DataSource, elsabio.config.tariff_analyzer.DataSourceConfig], default {}
         The data sources needed by Tariff Analyzer.
     """
 
     enabled: bool = True
-    db: Path = DEFAULT_DB_PATH
+    data_dir: Path = DEFAULT_DATA_DIR
     data: dict[DataSource, DataSourceConfig] = Field(default={})
 
-    @field_validator('db')
+    @field_validator('data_dir')
     @classmethod
-    def validate_db(cls, db: Path) -> Path:
-        r"""Validate the `db` field."""
+    def validate_data_dir(cls, data_dir: Path) -> Path:
+        r"""Validate the `data_dir` field."""
 
-        if db.is_dir():
-            raise ValueError(f'db="{db}" must be a file not a directory!')
+        data_dir = data_dir.expanduser().resolve()
 
-        return db.expanduser().resolve()
+        if data_dir == DEFAULT_DATA_DIR:
+            return data_dir
+
+        if not data_dir.exists():
+            raise ValueError(f'The tariff_analyzer.data_dir = "{data_dir}" does not exist!')
+
+        if not data_dir.is_dir():
+            raise ValueError(f'tariff_analyzer.data_dir = "{data_dir}" must be a directory!')
+
+        return data_dir

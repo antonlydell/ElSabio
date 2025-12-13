@@ -79,7 +79,7 @@ def config_data(tmp_path: Path) -> tuple[str, dict[str, Any]]:
         'private_key': 'bwp_private_key',
         'url': BITWARDEN_PASSWORDLESS_API_URL,
     }
-    tariff_analyzer = {'enabled': True, 'db': DEFAULT_DB_PATH, 'data': {}}
+    tariff_analyzer = {'enabled': True, 'data_dir': DEFAULT_DATA_DIR, 'data': {}}
     logging_config = {
         'disabled': False,
         'min_log_level': LogLevel.INFO,

@@ -18,7 +18,7 @@ from sqlalchemy import make_url
 # Local
 from elsabio.config import ImportMethod, PluginType
 from elsabio.config.tariff_analyzer import (
-    DEFAULT_DB_PATH,
+    DEFAULT_DATA_DIR,
     DataSource,
     DataSourceConfig,
     TariffAnalyzerConfig,
@@ -34,7 +34,7 @@ class TestTariffAnalyzerConfig:
 
         # Setup
         # ===========================================================
-        exp_result = {'enabled': True, 'db': DEFAULT_DB_PATH, 'data': {}}
+        exp_result = {'enabled': True, 'data_dir': DEFAULT_DATA_DIR, 'data': {}}
 
         # Exercise
         # ===========================================================
@@ -55,12 +55,21 @@ class TestTariffAnalyzerConfig:
 
         # Setup
         # ===========================================================
+        data_dir = tmp_path / 'data'
+        data_dir.mkdir()
+
         facility_path_input = tmp_path / 'facility'
         facility_path_input.mkdir()
 
+        facility_contract_path_input = tmp_path / 'facility_contract'
+        facility_contract_path_input.mkdir()
+
+        active_energy_cons_path_input = tmp_path / 'active_energy_cons'
+        active_energy_cons_path_input.mkdir()
+
         input_data = {
             'enabled': False,
-            'db': './tariff_analyzer.duckdb',
+            'data_dir': str(data_dir),
             'data': {
                 'facility': {
                     'method': 'file',
@@ -68,6 +77,7 @@ class TestTariffAnalyzerConfig:
                 },
                 'facility_contract': {
                     'method': 'plugin',
+                    'path': str(facility_contract_path_input),
                     'interval': '2025-10-01..2025-11-01',
                     'plugin': {
                         'name': 'import_facility_contract',
@@ -77,6 +87,7 @@ class TestTariffAnalyzerConfig:
                 },
                 'active_energy_cons': {
                     'method': 'plugin',
+                    'path': str(active_energy_cons_path_input),
                     'interval': '2025-10-01',
                     'plugin': {
                         'name': 'import_active_energy_cons',
@@ -88,7 +99,7 @@ class TestTariffAnalyzerConfig:
         }
         exp_result = {
             'enabled': False,
-            'db': Path.cwd() / 'tariff_analyzer.duckdb',
+            'data_dir': data_dir,
             'data': {
                 DataSource.FACILITY: {
                     'method': ImportMethod.FILE,
@@ -98,7 +109,7 @@ class TestTariffAnalyzerConfig:
                 },
                 DataSource.FACILITY_CONTRACT: {
                     'method': ImportMethod.PLUGIN,
-                    'path': None,
+                    'path': facility_contract_path_input,
                     'interval': (date(2025, 10, 1), date(2025, 11, 1)),
                     'plugin': {
                         'name': 'import_facility_contract',
@@ -108,7 +119,7 @@ class TestTariffAnalyzerConfig:
                 },
                 DataSource.ACTIVE_ENERGY_CONS: {
                     'method': ImportMethod.PLUGIN,
-                    'path': None,
+                    'path': active_energy_cons_path_input,
                     'interval': (date(2025, 10, 1), None),
                     'plugin': {
                         'name': 'import_active_energy_cons',
@@ -145,6 +156,7 @@ class TestTariffAnalyzerConfig:
             'data': {
                 'invalid': {
                     'method': 'plugin',
+                    'path': '.',
                     'interval': '2025-10-01',
                     'plugin': {
                         'name': 'test_invalid_data_source',
@@ -169,17 +181,43 @@ class TestTariffAnalyzerConfig:
         # ===========================================================
 
     @pytest.mark.raises
-    def test_db_path_is_dir(self, tmp_path: Path) -> None:
-        r"""Test to supply a directory path to the `db` field."""
+    def test_data_dir_does_not_exist(self, tmp_path: Path) -> None:
+        r"""Test to supply a directory that does not exist to the `data_dir` field."""
 
         # Setup
         # ===========================================================
-        error_msg_exp = f'db="{tmp_path}" must be a file not a directory!'
+        data_dir = tmp_path / 'data'
+        error_msg_exp = f'The tariff_analyzer.data_dir = "{data_dir}" does not exist!'
 
         # Exercise
         # ===========================================================
         with pytest.raises(ConfigError) as exc_info:
-            TariffAnalyzerConfig(db=tmp_path)
+            TariffAnalyzerConfig(data_dir=data_dir)
+
+        # Verify
+        # ===========================================================
+        error_msg = exc_info.exconly()
+        print(error_msg)
+
+        assert error_msg_exp in error_msg
+
+        # Clean up - None
+        # ===========================================================
+
+    @pytest.mark.raises
+    def test_data_dir_path_is_file(self, tmp_path: Path) -> None:
+        r"""Test to supply a file to the `data_dir` field."""
+
+        # Setup
+        # ===========================================================
+        file = tmp_path / 'data_dir.txt'
+        file.touch()
+        error_msg_exp = f'tariff_analyzer.data_dir = "{file}" must be a directory!'
+
+        # Exercise
+        # ===========================================================
+        with pytest.raises(ConfigError) as exc_info:
+            TariffAnalyzerConfig(data_dir=file)
 
         # Verify
         # ===========================================================
@@ -194,29 +232,6 @@ class TestTariffAnalyzerConfig:
 
 class TestDataSourceConfig:
     r"""Tests for the class `elsabio.config.tariff_analyzer.DataSourceConfig`."""
-
-    @pytest.mark.raises
-    def test_method_is_file_and_path_is_none(self) -> None:
-        r"""Test to supply a path that does not exist."""
-
-        # Setup
-        # ===========================================================
-        error_msg_exp = 'No path specified and method = "file"!'
-
-        # Exercise
-        # ===========================================================
-        with pytest.raises(ConfigError) as exc_info:
-            DataSourceConfig(method='file')
-
-        # Verify
-        # ===========================================================
-        error_msg = exc_info.exconly()
-        print(error_msg)
-
-        assert error_msg_exp in error_msg
-
-        # Clean up - None
-        # ===========================================================
 
     @pytest.mark.raises
     def test_path_does_not_exist(self, tmp_path: Path) -> None:
@@ -243,7 +258,36 @@ class TestDataSourceConfig:
         # ===========================================================
 
     @pytest.mark.raises
-    def test_path_is_dir(self, tmp_path: Path) -> None:
+    def test_relative_path_does_not_exist(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        r"""Test to supply a relative path that does not exist."""
+
+        # Setup
+        # ===========================================================
+        path = tmp_path / 'does_not_exist'
+        monkeypatch.chdir(tmp_path)
+        rel_path = './does_not_exist'
+
+        error_msg_exp = f'The import path = "{path}" does not exist!'
+
+        # Exercise
+        # ===========================================================
+        with pytest.raises(ConfigError) as exc_info:
+            DataSourceConfig(method='file', path=str(rel_path))
+
+        # Verify
+        # ===========================================================
+        error_msg = exc_info.exconly()
+        print(error_msg)
+
+        assert error_msg_exp in error_msg
+
+        # Clean up - None
+        # ===========================================================
+
+    @pytest.mark.raises
+    def test_path_is_file(self, tmp_path: Path) -> None:
         r"""Test to supply a path that is a file and not a directory."""
 
         # Setup
@@ -256,6 +300,34 @@ class TestDataSourceConfig:
         # ===========================================================
         with pytest.raises(ConfigError) as exc_info:
             DataSourceConfig(method='file', path=path)
+
+        # Verify
+        # ===========================================================
+        error_msg = exc_info.exconly()
+        print(error_msg)
+
+        assert error_msg_exp in error_msg
+
+        # Clean up - None
+        # ===========================================================
+
+    @pytest.mark.raises
+    def test_relative_path_is_file(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        r"""Test to supply a relative path that is a file and not a directory."""
+
+        # Setup
+        # ===========================================================
+        path = tmp_path / 'file.txt'
+        path.touch()
+        monkeypatch.chdir(tmp_path)
+        rel_path = './file.txt'
+
+        error_msg_exp = f'The import path = "{path}" is not a directory!'
+
+        # Exercise
+        # ===========================================================
+        with pytest.raises(ConfigError) as exc_info:
+            DataSourceConfig(method='file', path=rel_path)
 
         # Verify
         # ===========================================================
@@ -284,7 +356,7 @@ class TestDataSourceConfig:
         # Exercise
         # ===========================================================
         with pytest.raises(ConfigError) as exc_info:
-            DataSourceConfig(method='file', interval=interval)
+            DataSourceConfig(method='file', path=Path.cwd(), interval=interval)
 
         # Verify
         # ===========================================================
@@ -307,7 +379,7 @@ class TestDataSourceConfig:
         # Exercise
         # ===========================================================
         with pytest.raises(ConfigError) as exc_info:
-            DataSourceConfig(method='plugin')
+            DataSourceConfig(method='plugin', path=Path.cwd())
 
         # Verify
         # ===========================================================
@@ -330,7 +402,7 @@ class TestDataSourceConfig:
         # Exercise
         # ===========================================================
         with pytest.raises(ConfigError) as exc_info:
-            DataSourceConfig(method='plugin', plugin={'name': 'test'})
+            DataSourceConfig(method='plugin', path=Path.cwd(), plugin={'name': 'test'})
 
         # Verify
         # ===========================================================
