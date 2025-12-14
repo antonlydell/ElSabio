@@ -1,0 +1,11 @@
+facility_id;ean;ean_prod;facility_type_id;name;description
+1;123456000000000001;;1;Apartment 1;An apartment.
+2;123456000000000002;;1;House 1;A house.
+3;123456000000000003;123456789000000001;1;House 2;Another house.
+4;123456000000000004;;1;Company A;Subscribed power 95 kW low voltage.
+5;123456000000000005;;1;Company B;Subscribed power 120 kW low voltage.
+6;123456000000000006;123456789000000002;1;Company C;Subscribed power 530 kW high voltage.
+7;123456000000000007;;1;Company D;Subscribed power 440 kW high voltage. No matching customer group.
+8;123456789000000001;;2;Solar panels 1;Solar panels of House 1.
+9;123456789000000002;;2;Solar panels 2;Solar panels of Company C with a connection power of 80 kW.
+10;123456789000000003;;2;Wind Power Plant 1;Large wind power plant with connection power > 1 MW.

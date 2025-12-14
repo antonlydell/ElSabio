@@ -1,0 +1,22 @@
+[database]
+url = ':db_url'
+create_database = true
+
+[bwp]
+public_key = 'bwp_public_key'
+private_key = 'bwp_private_key'
+
+[tariff_analyzer]
+data_dir = ':ta_data_dir'
+
+[tariff_analyzer.data.facility]
+method = 'file'
+path = ':facility_data_path'
+
+[tariff_analyzer.data.facility_contract]
+method = 'file'
+path = ':facility_contract_data_path'
+
+[tariff_analyzer.data.active_energy_cons]
+method = 'file'
+path = ':active_energy_cons_data_path'

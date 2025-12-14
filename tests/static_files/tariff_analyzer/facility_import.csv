@@ -1,0 +1,11 @@
+ean;ean_prod;facility_type_code;name;description
+123456000000000001;;consumption;Apartment 1;An apartment.
+123456000000000002;;consumption;House 1;A house.
+123456000000000003;123456789000000001;consumption;House 2;Another house.
+123456000000000004;;consumption;Company A;Subscribed power 95 kW low voltage.
+123456000000000005;;consumption;Company B;Subscribed power 120 kW low voltage.
+123456000000000006;123456789000000002;consumption;Company C;Subscribed power 530 kW high voltage.
+123456000000000007;;consumption;Company D;Subscribed power 440 kW high voltage. No matching customer group.
+123456789000000001;;production;Solar panels 1;Solar panels of House 1.
+123456789000000002;;production;Solar panels 2;Solar panels of Company C with a connection power of 80 kW.
+123456789000000003;;production;Wind Power Plant 1;Large wind power plant with connection power > 1 MW.

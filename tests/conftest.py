@@ -14,7 +14,8 @@ from zoneinfo import ZoneInfo
 
 # Third party
 import pytest
-from sqlalchemy import make_url
+from sqlalchemy import create_engine, make_url
+from sqlalchemy.orm import sessionmaker
 
 # Local
 import elsabio.config.config
@@ -26,8 +27,14 @@ from elsabio.config import (
     LogLevel,
     Stream,
 )
-from elsabio.config.tariff_analyzer import DEFAULT_DB_PATH
+from elsabio.config.tariff_analyzer import DEFAULT_DATA_DIR
+from elsabio.database import URL, SessionFactory, init
+from elsabio.database.models import Base
 from tests.config import STATIC_FILES_CONFIG_BASE_DIR
+
+# =================================================================================================
+# Config
+# =================================================================================================
 
 
 @pytest.fixture
@@ -301,3 +308,53 @@ def config_file_with_syntax_error(tmp_path: Path) -> Path:
     config_file_path.write_text(source_config_file_path.read_text())
 
     return config_file_path
+
+
+# =================================================================================================
+# Database
+# =================================================================================================
+
+
+@pytest.fixture
+def empty_sqlite_db(tmp_path: Path) -> tuple[SessionFactory, URL]:
+    r"""An empty SQLite database with all tables created.
+
+    Returns
+    -------
+    session_factory : elsabio.db.SessionFactory
+        The session factory that can produce new database sessions.
+
+    db_url : elsabio.db.URL
+        The database connection url.
+    """
+
+    path = tmp_path / 'ElSabio.db'
+    engine = create_engine(url=f'sqlite:///{path}')
+    db_url = make_url(f'sqlite:///{path}')
+    session_factory = sessionmaker(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    return session_factory, db_url
+
+
+@pytest.fixture
+def initialized_sqlite_db(
+    empty_sqlite_db: tuple[SessionFactory, URL],
+) -> tuple[SessionFactory, URL]:
+    r"""An initialized SQLite database with all default data persisted.
+
+    Returns
+    -------
+    session_factory : elsabio.db.SessionFactory
+        The session factory that can produce new database sessions.
+
+    db_url : elsabio.db.URL
+        The database connection url.
+    """
+
+    session_factory, db_url = empty_sqlite_db
+
+    with session_factory() as session:
+        init(session=session)
+
+    return session_factory, db_url
