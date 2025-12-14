@@ -12,9 +12,13 @@ from .core import (
     Session,
     SessionFactory,
     SQLAlchemyError,
+    SQLQuery,
+    bulk_insert_to_table,
+    bulk_update_table,
     commit,
     create_default_roles,
     create_session_factory,
+    load_sql_query_as_dataframe,
     make_url,
 )
 from .init import init
@@ -26,9 +30,13 @@ __all__ = [
     'Session',
     'SessionFactory',
     'SQLAlchemyError',
+    'SQLQuery',
+    'bulk_insert_to_table',
+    'bulk_update_table',
     'commit',
     'create_default_roles',
     'create_session_factory',
+    'load_sql_query_as_dataframe',
     'make_url',
     # init
     'init',

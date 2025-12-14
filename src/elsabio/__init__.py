@@ -11,6 +11,7 @@ make smarter decisions.
 """
 
 # Local
+from elsabio import database as db
 from elsabio.app import APP_PATH
 from elsabio.core import OperationResult
 from elsabio.exceptions import (
@@ -33,6 +34,8 @@ __all__ = [
     'APP_PATH',
     # core
     'OperationResult',
+    # database
+    'db',
     # exceptions
     'ConfigError',
     'ConfigFileNotFoundError',
