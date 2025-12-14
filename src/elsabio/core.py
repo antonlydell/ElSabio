@@ -36,3 +36,34 @@ class OperationResult(NamedTuple):
     short_msg: str = ''
     long_msg: str = ''
     code: str | None = None
+
+
+def has_required_columns(cols: set[str], required_cols: set[str]) -> OperationResult:
+    r"""Check if the supplied columns contain the required columns.
+
+    Parameters
+    ----------
+    cols : set[str]
+        The columns to analyze.
+
+    required_cols : set[str]
+        The columns that must exist in `cols`.
+
+    Returns
+    -------
+    result : elsabio.core.OperationResult
+        The result of the validation.
+    """
+
+    if missing_cols := required_cols.difference(cols):
+        error_msg = (
+            'Missing the required columns!\n'
+            f'Missing required columns : {missing_cols}\n'
+            f'Required columns         : {required_cols}\n'
+            f'Available columns        : {cols}'
+        )
+        result = OperationResult(ok=False, short_msg=error_msg, long_msg=error_msg)
+    else:
+        result = OperationResult(ok=True)
+
+    return result
