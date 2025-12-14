@@ -9,13 +9,11 @@ r"""The entry point of the sub-command `import` of the Tariff Analyzer module.""
 import click
 
 # Local
-from elsabio.config.tariff_analyzer import DataSource
+from .facility import facility
 
 
-@click.command(name='import')
-@click.argument('source', type=click.Choice(DataSource, case_sensitive=False))
-@click.pass_context
-def import_(ctx: click.Context, source: DataSource) -> None:
+@click.group(name='import')
+def import_() -> None:
     """Import data to the ElSabio Tariff Analyzer module
 
     The import strategy is based on what is defined in the configuration.
@@ -30,3 +28,7 @@ def import_(ctx: click.Context, source: DataSource) -> None:
     Import the facility contracts:
         $ elsabio ta import facility_contract
     """
+
+
+for cmd in (facility,):
+    import_.add_command(cmd)
