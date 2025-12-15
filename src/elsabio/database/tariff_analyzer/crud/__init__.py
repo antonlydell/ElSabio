@@ -8,6 +8,7 @@ r"""Functions to perform CREATE, READ, UPDATE and DELETE operations for Tariff A
 # Local
 from .facility import bulk_insert_facilities, bulk_update_facilities, load_facility_mapping_model
 from .facility_type import load_facility_type_mapping_model
+from .product import bulk_insert_products, bulk_update_products, load_product_mapping_model
 
 # The Public API
 __all__ = [
@@ -17,4 +18,8 @@ __all__ = [
     'load_facility_mapping_model',
     # facility_type
     'load_facility_type_mapping_model',
+    # product
+    'bulk_insert_products',
+    'bulk_update_products',
+    'load_product_mapping_model',
 ]
