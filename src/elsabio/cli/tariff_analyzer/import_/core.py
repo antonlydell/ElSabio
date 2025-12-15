@@ -15,7 +15,7 @@ import duckdb
 # Local
 from elsabio.config import ImportMethod
 from elsabio.core import OperationResult
-from elsabio.operations.file import read_parquet
+from elsabio.operations.file import move_files, read_parquet
 
 
 def format_list_of_files(files: Sequence[Path]) -> str:
@@ -40,6 +40,39 @@ def format_list_of_files(files: Sequence[Path]) -> str:
         output += f'{idx:0>{nr_files}}. {f.name}'
 
     return output
+
+
+def move_processed_files(source_dir: Path, error: bool = False) -> OperationResult:
+    r"""Move the processed files to a sub-directory.
+
+    Parameters
+    ----------
+    source_dir : pathlib.Path
+        The source directory where the files to move are located.
+
+    error : bool, default False
+        True if the files should be moved the error sub-directory and False for the
+        success sub-directory.
+
+    Returns
+    -------
+    result : elsabio.core.OperationResult
+        The result of moving the files in `source_dir`.
+    """
+
+    target_dir = source_dir / ('error' if error else 'success')
+    files, result = move_files(
+        source_dir=source_dir, target_dir=target_dir, prepend_move_datetime=True
+    )
+    if result.ok:
+        result = OperationResult(
+            ok=True,
+            short_msg=f'Moved input files to "{target_dir}":\n{format_list_of_files(files)}\n',
+        )
+    else:
+        result = OperationResult(ok=False, short_msg=result.short_msg)
+
+    return result
 
 
 def load_data_model_to_import(

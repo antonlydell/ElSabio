@@ -10,6 +10,7 @@ import click
 
 # Local
 from .facility import facility
+from .product import product
 
 
 @click.group(name='import')
@@ -30,5 +31,5 @@ def import_() -> None:
     """
 
 
-for cmd in (facility,):
+for cmd in (facility, product):
     import_.add_command(cmd)
