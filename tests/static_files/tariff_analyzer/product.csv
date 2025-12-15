@@ -1,0 +1,6 @@
+product_id;external_id;name;description
+1;14001;Apartment;The product for apartments.
+2;27001;Fuse Size;The product for fuse size customers.
+3;45001;Production;The product for small production units.
+4;56001;Low Voltage Subscribed Power;The product for low voltage facilities with subscribed power.
+5;9001;High Voltage;The product for high voltage facilities.

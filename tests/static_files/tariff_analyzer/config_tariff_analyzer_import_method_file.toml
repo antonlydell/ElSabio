@@ -9,6 +9,10 @@ private_key = 'bwp_private_key'
 [tariff_analyzer]
 data_dir = ':ta_data_dir'
 
+[tariff_analyzer.data.product]
+method = 'file'
+path = ':product_data_path'
+
 [tariff_analyzer.data.facility]
 method = 'file'
 path = ':facility_data_path'

@@ -26,6 +26,7 @@ DEFAULT_DATA_DIR = TARIFF_ANALYZER_DIR / 'data'
 class DataSource(StrEnum):
     r"""The available data sources of the Tariff Analyzer module."""
 
+    PRODUCT = 'product'
     FACILITY = 'facility'
     FACILITY_CONTRACT = 'facility_contract'
     ACTIVE_ENERGY_CONS = 'active_energy_cons'

@@ -6,6 +6,7 @@
 r"""Fixtures for testing the Tariff Analyzer command (`ta`) of the ElSabio CLI."""
 
 # Standard library
+import re
 from pathlib import Path
 
 # Third party
@@ -15,16 +16,57 @@ from sqlalchemy import select
 
 # Local
 import elsabio.config.config
-from elsabio.config import ConfigManager, ImportMethod
+from elsabio.config import BitwardenPasswordlessConfig, ConfigManager, ImportMethod
 from elsabio.database import URL, SessionFactory
 from elsabio.database.models.tariff_analyzer import Facility, FacilityType
-from elsabio.models.tariff_analyzer import FacilityDataFrameModel, FacilityImportDataFrameModel
+from elsabio.models.tariff_analyzer import (
+    FacilityDataFrameModel,
+    FacilityImportDataFrameModel,
+    ProductDataFrameModel,
+    ProductImportDataFrameModel,
+)
 from elsabio.models.tariff_analyzer import FacilityTypeEnum as FacilityTypeEnum
 from tests.config import STATIC_FILES_TARIFF_ANALYZER_BASE_DIR
 
 # =================================================================================================
 # Models
 # =================================================================================================
+
+
+@pytest.fixture
+def product_model() -> ProductDataFrameModel:
+    r"""The full test dataset of product as found when loaded from the database.
+
+    The result of loading the content of fixture `product_model_to_import` into the database.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.ProductDataFrameModel
+        The DataFrame model of the products.
+    """
+
+    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / 'product.csv'
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    df = duckdb.read_csv(str(file), sep=';').df().astype(ProductDataFrameModel.dtypes)
+
+    return ProductDataFrameModel(df=df)
+
+
+@pytest.fixture
+def product_model_to_import(product_model: ProductDataFrameModel) -> ProductImportDataFrameModel:
+    r"""The test dataset of the products to import to the database.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.ProductImportDataFrameModel
+        The DataFrame model of the products.
+    """
+
+    rel = duckdb.from_df(product_model.df)
+    df = rel.project(f'* EXCLUDE({ProductDataFrameModel.c_product_id})').to_df()
+
+    return ProductImportDataFrameModel(df=df)
 
 
 @pytest.fixture
@@ -148,6 +190,9 @@ def config_data_import_method_file(
     data_dir = tmp_path / 'data'
     data_dir.mkdir()
 
+    product_input_path = tmp_path / 'product'
+    product_input_path.mkdir()
+
     facility_input_path = tmp_path / 'facility'
     facility_input_path.mkdir()
 
@@ -160,6 +205,7 @@ def config_data_import_method_file(
     config_data_str = (
         config_data_str.replace(':db_url', str(db_url))
         .replace(':ta_data_dir', str(data_dir))
+        .replace(':product_data_path', str(product_input_path))
         .replace(':facility_data_path', str(facility_input_path))
         .replace(':facility_contract_data_path', str(facility_contract_input_path))
         .replace(':active_energy_cons_data_path', str(active_energy_cons_input_path))
@@ -173,6 +219,7 @@ def config_data_import_method_file(
         'enabled': True,
         'data_dir': data_dir,
         'data': {
+            'product': {'method': ImportMethod.FILE, 'path': product_input_path},
             'facility': {'method': ImportMethod.FILE, 'path': facility_input_path},
             'facility_contract': {
                 'method': ImportMethod.FILE,
@@ -221,3 +268,34 @@ def config_import_method_file_in_config_file_env_var(
     monkeypatch.setenv(elsabio.config.config.CONFIG_FILE_ENV_VAR, str(config_file_path))
 
     return config_file_path, cm
+
+
+@pytest.fixture
+def config_data_no_data_import() -> ConfigManager:
+    r"""A minimal ElSabio config without the Tariff Analyzer data section.
+
+    Returns
+    -------
+    cm : elsabio.config.ConfigManager
+        The configuration.
+    """
+
+    return ConfigManager(
+        bwp=BitwardenPasswordlessConfig(public_key='public_key', private_key='private_key')
+    )
+
+
+@pytest.fixture(scope='module')
+def filename_with_timestamp_pattern_regex() -> re.Pattern:
+    r"""The regex for matching a filename with a timestamp prepended.
+
+    Useful for testing the filename of an import file that has been moved
+    to a sub-directory after successful import.
+
+    Returns
+    -------
+    re.Pattern
+        The regex pattern.
+    """
+
+    return re.compile(r'^\d{4}-\d{2}-\d{2}T\d{2}\.\d{2}\.\d{2}[+-]\d{4}_[\w\.]*$')
