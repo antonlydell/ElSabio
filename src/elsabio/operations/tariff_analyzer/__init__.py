@@ -6,11 +6,16 @@
 r"""The business logic of the Tariff Analyzer module."""
 
 # Local
-from .import_ import FacilityUpsertDataFrames, create_facility_upsert_dataframes
+from .import_ import (
+    FacilityUpsertDataFrames,
+    create_facility_upsert_dataframes,
+    create_product_upsert_dataframes,
+)
 
 # The Public API
 __all__ = [
     # import_  # noqa: ERA001
     'FacilityUpsertDataFrames',
     'create_facility_upsert_dataframes',
+    'create_product_upsert_dataframes',
 ]
