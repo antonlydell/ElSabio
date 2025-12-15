@@ -7,8 +7,6 @@ r"""The entry point of the sub-command `ta import facility` of the Tariff Analyz
 
 # Standard library
 import logging
-from collections.abc import Sequence
-from pathlib import Path
 
 # Third party
 import click
@@ -16,9 +14,9 @@ import duckdb
 
 # Local
 from elsabio.cli.core import Color, Obj, echo_with_log, exit_program
-from elsabio.config import ConfigManager, ImportMethod
+from elsabio.cli.tariff_analyzer.import_.core import format_list_of_files, load_data_model_to_import
+from elsabio.config import ConfigManager
 from elsabio.config.tariff_analyzer import DataSource
-from elsabio.core import OperationResult
 from elsabio.database import SessionFactory
 from elsabio.database.tariff_analyzer import (
     bulk_insert_facilities,
@@ -26,80 +24,8 @@ from elsabio.database.tariff_analyzer import (
     load_facility_mapping_model,
     load_facility_type_mapping_model,
 )
-from elsabio.operations.file import move_files, read_parquet
+from elsabio.operations.file import move_files
 from elsabio.operations.tariff_analyzer import create_facility_upsert_dataframes
-
-
-def _format_list_of_files(files: Sequence[Path]) -> str:
-    r"""Format a list of files as an enumerated string of filenames.
-
-    Parameters
-    ----------
-    files: Sequence[pathlib.Path]
-        The files to format.
-
-    Returns
-    -------
-    output : str
-        The formatted string of filenames.
-    """
-
-    output = ''
-
-    nr_files = len(files)
-
-    for idx, f in enumerate(files, start=1):
-        output += f'{idx:0>{nr_files}}. {f.name}'
-
-    return output
-
-
-def _load_facilities_to_import(
-    method: ImportMethod, path: Path, conn: duckdb.DuckDBPyConnection
-) -> tuple[duckdb.DuckDBPyRelation, OperationResult]:
-    r"""Load the facilities to import.
-
-    Parameters
-    ----------
-    method : elsabio.config.ImportMethod
-        The import method to use for loading the facilities.
-
-    path : pathlib.Path
-        The path to the directory where data files to import are located if
-        `method` is :attr:ImportMethod.FILE`, or the directory where the input
-        data is temporarily saved before import if `method` is :attr:ImportMethod.PLUGIN`.
-
-    conn : duckdb.DuckDBPyConnection
-        An open connection DuckDB connection to use for loading the facilities.
-
-    Returns
-    -------
-    rel : duckdb.DuckDBPyRelation
-        The dataset of the loaded facilities.
-
-    result : elsabio.core.OperationResult
-        The result of loading the facilities.
-    """
-
-    if method == ImportMethod.FILE:
-        return read_parquet(path=path, conn=conn)
-
-    if method == ImportMethod.PLUGIN:
-        result = OperationResult(
-            ok=False, short_msg='facility import through plugins is not implemented yet!'
-        )
-        return conn.sql('SELECT NULL'), result
-
-    # Guard for possible future import methods
-    result = OperationResult(  # type: ignore[unreachable]
-        ok=False,
-        short_msg=(
-            f'Invalid import method "{method}"! '
-            f'Valid methods are: {tuple(str(m) for m in ImportMethod)}'
-        ),
-    )
-
-    return conn.sql('SELECT NULL'), result
 
 
 @click.command(name='facility')
@@ -120,7 +46,7 @@ def facility(ctx: click.Context) -> None:
 
     with session_factory() as session:
         with duckdb.connect() as conn:
-            import_model, result = _load_facilities_to_import(
+            import_model, result = load_data_model_to_import(
                 method=cfg.method, path=cfg.path, conn=conn
             )
             if not result.ok:
@@ -165,7 +91,7 @@ def facility(ctx: click.Context) -> None:
         if not result.ok:
             exit_program(error=True, ctx=ctx, message=result.short_msg)
 
-        echo_with_log(f'Moved input files to "{target_dir}":\n{_format_list_of_files(files)}\n')
+        echo_with_log(f'Moved input files to "{target_dir}":\n{format_list_of_files(files)}\n')
 
         exit_program(
             error=False,
