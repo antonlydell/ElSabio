@@ -58,9 +58,9 @@ def has_required_columns(cols: set[str], required_cols: set[str]) -> OperationRe
     if missing_cols := required_cols.difference(cols):
         error_msg = (
             'Missing the required columns!\n'
-            f'Missing required columns : {missing_cols}\n'
-            f'Required columns         : {required_cols}\n'
-            f'Available columns        : {cols}'
+            f'Missing required columns : {tuple(sorted(missing_cols))}\n'
+            f'Required columns         : {tuple(sorted(required_cols))}\n'
+            f'Available columns        : {tuple(sorted(cols))}'
         )
         result = OperationResult(ok=False, short_msg=error_msg, long_msg=error_msg)
     else:
