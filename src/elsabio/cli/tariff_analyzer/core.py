@@ -9,7 +9,7 @@ r"""The entry point of the Tariff Analyzer module command `ta`."""
 import click
 
 # Local
-from .import_.core import import_
+from .import_.import_ import import_
 
 
 @click.group(name='ta')
