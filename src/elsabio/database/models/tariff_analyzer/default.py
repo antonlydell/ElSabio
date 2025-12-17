@@ -129,7 +129,7 @@ def add_default_tariff_analyzer_models_to_session(session: Session) -> None:
     """
 
     session.add_all(FacilityType(**item) for item in default_facility_types)
-    session.add_all(CustomerType(**item) for item in default_facility_types)
+    session.add_all(CustomerType(**item) for item in default_customer_types)
     session.add_all(
         CustomerGroupMappingStrategy(**item) for item in default_customer_group_mapping_strategies
     )
