@@ -20,6 +20,8 @@ from elsabio.config import BitwardenPasswordlessConfig, ConfigManager, ImportMet
 from elsabio.database import URL, SessionFactory
 from elsabio.database.models.tariff_analyzer import Facility, FacilityType
 from elsabio.models.tariff_analyzer import (
+    FacilityContractDataFrameModel,
+    FacilityContractImportDataFrameModel,
     FacilityDataFrameModel,
     FacilityImportDataFrameModel,
     ProductDataFrameModel,
@@ -105,6 +107,82 @@ def facilities_model() -> FacilityDataFrameModel:
     df = duckdb.read_csv(str(file), sep=';').df().astype(FacilityDataFrameModel.dtypes)
 
     return FacilityDataFrameModel(df=df)
+
+
+@pytest.fixture(scope='module')
+def facility_contract_model_file() -> Path:
+    r"""The file path to the facility contract test dataset.
+
+    Returns
+    -------
+    file : pathlib.Path
+        The full path to the file containing the facility contract test dataset.
+    """
+
+    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / 'facility_contract.csv'
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    return file
+
+
+@pytest.fixture
+def facility_contract_model_to_import(
+    facility_contract_model_file: Path,
+) -> FacilityContractImportDataFrameModel:
+    r"""The test dataset of the facility contracts to import to the database.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.FacilityContractImportDataFrameModel
+        The DataFrame model of the facility contracts to import.
+    """
+
+    project = f"""* EXCLUDE(
+    {FacilityContractDataFrameModel.c_facility_id}
+    , {FacilityContractDataFrameModel.c_customer_type_id}
+    , {FacilityContractDataFrameModel.c_product_id}
+)
+"""
+
+    df = (
+        duckdb.read_csv(str(facility_contract_model_file), sep=';')
+        .project(project)
+        .df(date_as_object=True)
+        .astype(FacilityContractImportDataFrameModel.dtypes)
+    )
+
+    return FacilityContractImportDataFrameModel(df=df)
+
+
+@pytest.fixture
+def facility_contract_model(
+    facility_contract_model_file: Path,
+) -> FacilityContractDataFrameModel:
+    r"""The test dataset of facility contracts as found when loaded from the database.
+
+    The result of loading the content of fixture `facility_contract_model_to_import` into the database.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.FacilityContractDataFrameModel
+        The DataFrame model of the facility contracts.
+    """
+
+    project_cols = f"""* EXCLUDE(
+    {FacilityContractImportDataFrameModel.c_ean}
+    , {FacilityContractImportDataFrameModel.c_customer_type_code}
+    , {FacilityContractImportDataFrameModel.c_ext_product_id}
+)
+"""
+
+    df = (
+        duckdb.read_csv(str(facility_contract_model_file), sep=';')
+        .project(project_cols)
+        .df(date_as_object=True)
+        .astype(FacilityContractDataFrameModel.dtypes)
+    )
+
+    return FacilityContractDataFrameModel(df=df)
 
 
 # =================================================================================================
