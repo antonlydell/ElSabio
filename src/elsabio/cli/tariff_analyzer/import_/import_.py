@@ -10,6 +10,7 @@ import click
 
 # Local
 from .facility import facility
+from .facility_contract import facility_contract
 from .product import product
 
 
@@ -27,9 +28,9 @@ def import_() -> None:
 
     \b
     Import the facility contracts:
-        $ elsabio ta import facility_contract
+        $ elsabio ta import facility-contract
     """
 
 
-for cmd in (facility, product):
+for cmd in (product, facility, facility_contract):
     import_.add_command(cmd)

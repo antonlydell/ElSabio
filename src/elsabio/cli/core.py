@@ -13,6 +13,11 @@ from typing import NoReturn
 # Third party
 import click
 
+# Local
+from elsabio.config import ConfigManager
+from elsabio.database import SessionFactory
+from elsabio.exceptions import ElSabioError
+
 logger = logging.getLogger(__name__)
 
 
@@ -90,3 +95,36 @@ def echo_with_log(message: str, log_level: int = logging.INFO, color: Color | No
 
     click.secho(message=message, fg=color)
     logger.log(level=log_level, msg=message)
+
+
+def load_resources(ctx: click.Context) -> tuple[ConfigManager, SessionFactory]:
+    r"""Load the resources of the program.
+
+    Parameters
+    ----------
+    ctx : click.Context
+        The context of the program.
+
+    Returns
+    -------
+    cm : elsabio.config.ConfigManager
+        The configuration of the program.
+
+    session_factory : elsabio.db.SessionFactory
+        The session factory that can produce new database sessions.
+
+    Raises
+    ------
+    elsabio.ElSabioError
+        If the configuration or the session factory were not found in the context of the program.
+    """
+
+    cm: ConfigManager | None = ctx.obj.get(Obj.CONFIG)
+    if cm is None:
+        raise ElSabioError('The configuration was not found in the context of the program!')
+
+    session_factory: SessionFactory | None = ctx.obj.get(Obj.SESSION_FACTORY)
+    if session_factory is None:
+        raise ElSabioError('The session_factory was not found in the context of the program!')
+
+    return cm, session_factory
