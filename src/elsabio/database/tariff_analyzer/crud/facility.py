@@ -37,7 +37,7 @@ def load_facility_mapping_model(
         The dataset of the facility mappings.
 
     result : elsabio.core.OperationResult
-        The result of loading the facility mapping model for the database.
+        The result of loading the facility mapping model from the database.
     """
 
     query = select(
