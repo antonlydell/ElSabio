@@ -67,7 +67,11 @@ def commit(session: Session, error_msg: str = 'Error committing transaction!') -
 
 
 def load_sql_query_as_dataframe(
-    query: SQLQuery, session: Session, dtypes: DtypeMapping, error_msg: str = ''
+    query: SQLQuery,
+    session: Session,
+    dtypes: DtypeMapping,
+    parse_dates: list[str] | None = None,
+    error_msg: str = '',
 ) -> tuple[pd.DataFrame, OperationResult]:
     r"""Load the result of a SQL query into a :class:`pandas.DataFrame`.
 
@@ -81,6 +85,9 @@ def load_sql_query_as_dataframe(
 
     dtypes : elsabio.models.DtypeMapping
         The datatypes of the columns of the `query`.
+
+    parse_dates : list[str] or None, default None
+        The columns to parse as datetime columns.
 
     error_msg : str, default ''
         An optional error message to include if an exception is raised when executing the query.
@@ -99,6 +106,7 @@ def load_sql_query_as_dataframe(
             sql=query,
             con=session.get_bind(),
             dtype=dtypes,
+            parse_dates=parse_dates,
             dtype_backend='pyarrow',
         )
     except SQLAlchemyError as e:
