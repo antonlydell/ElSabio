@@ -201,5 +201,5 @@ class SerieType(AuditColumnsMixin, Base):
     serie_type_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     code: Mapped[str] = mapped_column(String(64), unique=True)
     name: Mapped[str | None]
-    external_id: Mapped[str | None] = mapped_column(String(150), unique=True)
+    external_id: Mapped[str | None] = mapped_column(String(150))
     description: Mapped[str | None]

@@ -252,7 +252,7 @@ class Facility(AuditColumnsMixin, Base):
     __tablename__ = 'ta_facility'
 
     facility_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
-    ean: Mapped[int] = mapped_column(BigInteger())
+    ean: Mapped[int] = mapped_column(BigInteger(), unique=True)
     ean_prod: Mapped[int | None] = mapped_column(BigInteger())
     facility_type_id: Mapped[int] = mapped_column(
         ForeignKey(FacilityType.facility_type_id), server_default=text('0')
@@ -277,8 +277,7 @@ class Facility(AuditColumnsMixin, Base):
     )
 
 
-Index(f'{Facility.__tablename__}_ean_uix', Facility.ean, unique=True)
-Index(f'{Facility.__tablename__}_ean_prod_uix', Facility.ean_prod, unique=True)
+Index(f'{Facility.__tablename__}_ean_prod_ix', Facility.ean_prod)
 
 
 class FacilityContract(AuditColumnsMixin, Base):
