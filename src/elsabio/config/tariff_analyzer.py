@@ -33,6 +33,8 @@ class DataSource(StrEnum):
     ACTIVE_ENERGY_PROD = 'active_energy_prod'
     MAX_ACTIVE_POWER_CONS = 'max_active_power_cons'
     MAX_ACTIVE_POWER_PROD = 'max_active_power_prod'
+    MAX_REACTIVE_POWER_CONS = 'max_reactive_power_cons'
+    MAX_REACTIVE_POWER_PROD = 'max_reactive_power_prod'
     MAX_DEB_ACTIVE_POWER_CONS_HIGH_LOAD = 'max_deb_active_power_cons_high_load'
     MAX_DEB_ACTIVE_POWER_CONS_LOW_LOAD = 'max_deb_active_power_cons_low_load'
 
