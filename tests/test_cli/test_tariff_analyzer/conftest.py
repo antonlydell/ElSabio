@@ -8,6 +8,7 @@ r"""Fixtures for testing the Tariff Analyzer command (`ta`) of the ElSabio CLI."
 # Standard library
 import re
 from pathlib import Path
+from unittest.mock import Mock
 
 # Third party
 import duckdb
@@ -15,8 +16,9 @@ import pytest
 from sqlalchemy import select
 
 # Local
+import elsabio.cli.main
 import elsabio.config.config
-from elsabio.config import BitwardenPasswordlessConfig, ConfigManager, ImportMethod
+from elsabio.config import BitwardenPasswordlessConfig, ConfigManager, ImportMethod, load_config
 from elsabio.database import URL, SessionFactory
 from elsabio.database.models.tariff_analyzer import Facility, FacilityType
 from elsabio.models.tariff_analyzer import (
@@ -26,6 +28,8 @@ from elsabio.models.tariff_analyzer import (
     FacilityImportDataFrameModel,
     ProductDataFrameModel,
     ProductImportDataFrameModel,
+    SerieValueDataFrameModel,
+    SerieValueImportDataFrameModel,
 )
 from elsabio.models.tariff_analyzer import FacilityTypeEnum as FacilityTypeEnum
 from tests.config import STATIC_FILES_TARIFF_ANALYZER_BASE_DIR
@@ -185,6 +189,100 @@ def facility_contract_model(
     return FacilityContractDataFrameModel(df=df)
 
 
+@pytest.fixture
+def active_energy_cons_model() -> SerieValueDataFrameModel:
+    r"""The test dataset of the active energy consumption meter data.
+
+    The result of loading the content of fixture `active_energy_cons_model_to_import`
+    into the parquet hive.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.SerieValueDataFrameModel
+        The DataFrame model of the active energy consumption meter data.
+    """
+
+    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / '2025-11_active_energy_cons.csv'
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    df = (
+        duckdb.read_csv(str(file), sep=';')
+        .df(date_as_object=True)
+        .astype(SerieValueDataFrameModel.dtypes)
+    )
+
+    return SerieValueDataFrameModel(df=df)
+
+
+@pytest.fixture
+def active_energy_cons_model_to_import(
+    active_energy_cons_model: SerieValueDataFrameModel,
+) -> SerieValueImportDataFrameModel:
+    r"""The test dataset of the active energy consumption meter data to import.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.SerieValueImportDataFrameModel
+        The DataFrame model of the active energy consumption meter data to import.
+    """
+
+    df = (
+        duckdb.from_df(active_energy_cons_model.df)
+        .select(f'* EXCLUDE({SerieValueDataFrameModel.c_facility_id})')
+        .df(date_as_object=True)
+        .astype(SerieValueImportDataFrameModel.dtypes)
+    )
+
+    return SerieValueImportDataFrameModel(df=df)
+
+
+@pytest.fixture
+def max_reactive_power_cons_model() -> SerieValueDataFrameModel:
+    r"""The test dataset of the max reactive power consumption meter data.
+
+    The result of loading the content of fixture `max_reactive_power_cons_model_to_import`
+    into the parquet hive.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.SerieValueDataFrameModel
+        The DataFrame model of the max reactive power consumption meter data.
+    """
+
+    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / '2025-11_2025-12_max_reactive_power_cons.csv'
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    df = (
+        duckdb.read_csv(str(file), sep=';')
+        .df(date_as_object=True)
+        .astype(SerieValueDataFrameModel.dtypes)
+    )
+
+    return SerieValueDataFrameModel(df=df)
+
+
+@pytest.fixture
+def max_reactive_power_cons_model_to_import(
+    max_reactive_power_cons_model: SerieValueDataFrameModel,
+) -> SerieValueImportDataFrameModel:
+    r"""The test dataset of the max reactive power consumption meter data to import.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.SerieValueImportDataFrameModel
+        The DataFrame model of the max reactive power consumption meter data to import.
+    """
+
+    df = (
+        duckdb.from_df(max_reactive_power_cons_model.df)
+        .select(f'* EXCLUDE({SerieValueDataFrameModel.c_facility_id})')
+        .df(date_as_object=True)
+        .astype(SerieValueImportDataFrameModel.dtypes)
+    )
+
+    return SerieValueImportDataFrameModel(df=df)
+
+
 # =================================================================================================
 # Database
 # =================================================================================================
@@ -280,6 +378,9 @@ def config_data_import_method_file(
     active_energy_cons_input_path = tmp_path / 'active_energy_cons'
     active_energy_cons_input_path.mkdir()
 
+    max_reactive_power_cons_input_path = tmp_path / 'max_reactive_power_cons'
+    max_reactive_power_cons_input_path.mkdir()
+
     config_data_str = (
         config_data_str.replace(':db_url', str(db_url))
         .replace(':ta_data_dir', str(data_dir))
@@ -287,6 +388,7 @@ def config_data_import_method_file(
         .replace(':facility_data_path', str(facility_input_path))
         .replace(':facility_contract_data_path', str(facility_contract_input_path))
         .replace(':active_energy_cons_data_path', str(active_energy_cons_input_path))
+        .replace(':max_reactive_power_cons_data_path', str(max_reactive_power_cons_input_path))
     )
 
     database_config = {'url': db_url, 'create_database': True}
@@ -306,6 +408,10 @@ def config_data_import_method_file(
             'active_energy_cons': {
                 'method': ImportMethod.FILE,
                 'path': active_energy_cons_input_path,
+            },
+            'max_reactive_power_cons': {
+                'method': ImportMethod.FILE,
+                'path': max_reactive_power_cons_input_path,
             },
         },
     }
@@ -361,6 +467,34 @@ def config_data_no_data_import() -> ConfigManager:
     return ConfigManager(
         bwp=BitwardenPasswordlessConfig(public_key='public_key', private_key='private_key')
     )
+
+
+@pytest.fixture
+def mocked_load_config_with_no_import_data(
+    monkeypatch: pytest.MonkeyPatch,
+) -> tuple[Mock, ConfigManager]:
+    r"""A mocked version of `elsabio.config.load_config`.
+
+    The `load_config` function of the CLI is mocked to load a configuration
+    without the Tariff Analyzer data section.
+
+    Returns
+    -------
+    m : unittest.mock.Mock
+        The mock object.
+
+    cm : elsabio.config.ConfigManager
+        The configuration.
+    """
+
+    cm = ConfigManager(
+        bwp=BitwardenPasswordlessConfig(public_key='public_key', private_key='private_key')
+    )
+
+    m = Mock(spec_set=load_config, name='mocked_load_config', return_value=cm)
+    monkeypatch.setattr(elsabio.cli.main, 'load_config', m)
+
+    return m, cm
 
 
 @pytest.fixture(scope='module')

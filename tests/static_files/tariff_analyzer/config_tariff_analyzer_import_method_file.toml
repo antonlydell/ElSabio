@@ -24,3 +24,7 @@ path = ':facility_contract_data_path'
 [tariff_analyzer.data.active_energy_cons]
 method = 'file'
 path = ':active_energy_cons_data_path'
+
+[tariff_analyzer.data.max_reactive_power_cons]
+method = 'file'
+path = ':max_reactive_power_cons_data_path'

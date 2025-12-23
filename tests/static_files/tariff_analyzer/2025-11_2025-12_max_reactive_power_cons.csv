@@ -1,0 +1,13 @@
+serie_type_code;facility_id;ean;date_id;serie_value;status_id
+max_reactive_power_cons;1;123456000000000001;2025-11-01;4.3;
+max_reactive_power_cons;2;123456000000000002;2025-11-01;8.45;ok
+max_reactive_power_cons;3;123456000000000003;2025-11-01;7.7;calculated
+max_reactive_power_cons;4;123456000000000004;2025-11-01;21.25;ok
+max_reactive_power_cons;5;123456000000000005;2025-11-01;23.67;ok
+max_reactive_power_cons;6;123456000000000006;2025-11-01;56.54;estimated
+max_reactive_power_cons;7;123456000000000007;2025-11-01;65.74;
+max_reactive_power_cons;8;123456789000000001;2025-11-01;14.3;ok
+max_reactive_power_cons;9;123456789000000002;2025-11-01;13.34;estimated
+max_reactive_power_cons;10;123456789000000003;2025-11-01;12.24;
+max_reactive_power_cons;1;123456000000000001;2025-12-01;5.3;
+max_reactive_power_cons;2;123456000000000002;2025-12-01;9.45;
