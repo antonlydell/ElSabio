@@ -5,10 +5,11 @@
 
 r"""The data models of ElSabio."""
 
-from .core import User
+from .core import SerieTypeMappingDataFrameModel, User
 
 # The Public API
 __all__ = [
     # core
+    'SerieTypeMappingDataFrameModel',
     'User',
 ]

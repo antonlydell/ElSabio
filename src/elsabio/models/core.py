@@ -187,3 +187,24 @@ class BaseDataFrameModel(BaseModel):
         r"""The dtypes of the columns of the DataFrame."""
 
         return self.df.dtypes
+
+
+class SerieTypeMappingDataFrameModel(BaseDataFrameModel):
+    r"""A model of the serie types for mapping `code` to `serie_type_id`.
+
+    Parameters
+    ----------
+    serie_type_id : int
+        The unique ID of the serie type.
+
+    code : str
+        The unique code of the serie type.
+    """
+
+    c_serie_type_id: ClassVar[str] = 'serie_type_id'
+    c_code: ClassVar[str] = 'code'
+
+    dtypes: ClassVar[DtypeMapping] = {
+        c_serie_type_id: 'uint32[pyarrow]',
+        c_code: 'string[pyarrow]',
+    }
