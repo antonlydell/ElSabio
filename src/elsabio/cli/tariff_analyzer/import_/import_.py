@@ -11,6 +11,7 @@ import click
 # Local
 from .facility import facility
 from .facility_contract import facility_contract
+from .meter_data import meter_data
 from .product import product
 
 
@@ -32,5 +33,5 @@ def import_() -> None:
     """
 
 
-for cmd in (product, facility, facility_contract):
+for cmd in (product, facility, facility_contract, meter_data):
     import_.add_command(cmd)

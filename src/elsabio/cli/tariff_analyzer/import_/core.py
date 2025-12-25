@@ -6,16 +6,22 @@
 r"""The core functionality for the sub-command `import` of the Tariff Analyzer module."""
 
 # Standard library
-from collections.abc import Sequence
+import logging
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 # Third party
 import duckdb
+import pandas as pd
 
 # Local
+from elsabio.cli.core import Color, echo_with_log
+from elsabio.cli.display import display_dataframe
 from elsabio.config import ImportMethod
 from elsabio.core import OperationResult
 from elsabio.operations.file import move_files, read_parquet
+
+type ValidationFunction = Callable[[duckdb.DuckDBPyRelation], tuple[OperationResult, pd.DataFrame]]
 
 
 def format_list_of_files(files: Sequence[Path]) -> str:
@@ -122,3 +128,33 @@ def load_data_model_to_import(
     )
 
     return conn.sql('SELECT NULL'), result
+
+
+def validate_import_model(model: duckdb.DuckDBPyRelation, func: ValidationFunction) -> bool:
+    r"""Validate the import data model.
+
+    Parameters
+    ----------
+    model : duckdb.DuckDBPyRelation
+        The data model to validate.
+
+    func : Callable[[duckdb.DuckDBPyRelation], tuple[OperationResult, pd.DataFrame]]
+        The validation function to execute.
+
+    Returns
+    -------
+    bool
+        True if `model` is valid and False otherwise.
+    """
+
+    result, df_invalid = func(model)
+
+    if not result.ok:
+        echo_with_log(
+            message=f'{result.short_msg}\n{display_dataframe(df_invalid, as_str=True)}\n',
+            log_level=logging.ERROR,
+            color=Color.ERROR,
+        )
+        return False
+
+    return True
