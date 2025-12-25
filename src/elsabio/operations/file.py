@@ -65,6 +65,55 @@ def read_parquet(
     return rel, result
 
 
+def write_parquet(
+    rel: duckdb.DuckDBPyRelation,
+    path: Path | str,
+    partition_by: list[str] | None = None,
+    overwrite: bool = False,
+    row_group_size: int | None = None,
+) -> OperationResult:
+    r"""Write the contents of a DuckDB relation object to a parquet file.
+
+    Parameters
+    ----------
+    rel : duckdb.DuckDBPyRelation
+        The relation object of the data model to write to the parquet file.
+
+    path : pathlib.Path
+        The path to the parquet file or directory root of a parquet hive partition.
+
+    partition_by : list[str] or None, default None
+        The columns to partition the data by.
+
+    overwrite : bool, default False
+        True if files that already exist in the parquet hive should be allowed to
+        be overwritten and False otherwise. Used in conjunction with `partition_by`.
+
+    row_group_size : int or None, default None
+        The number of rows to write into each row group.
+        If None, the default of 122880 rows per group is used.
+    """
+
+    try:
+        rel.to_parquet(
+            file_name=str(path),
+            partition_by=partition_by,
+            overwrite=overwrite,
+            row_group_size=row_group_size,
+        )
+    except duckdb.IOException as e:
+        result = OperationResult(
+            ok=False,
+            short_msg=str(e),
+            code=f'{e.__module__}.{e.__class__.__name__}',
+        )
+        rel = duckdb.sql('SELECT NULL')
+    else:
+        result = OperationResult(ok=True)
+
+    return result
+
+
 def move_files(
     source_dir: Path, target_dir: Path, prepend_move_datetime: bool = False
 ) -> tuple[list[Path], OperationResult]:
