@@ -12,6 +12,7 @@ from .facility_contract import (
     get_facility_contract_import_interval,
     validate_facility_contract_import_data,
 )
+from .meter_data import create_serie_value_model, validate_meter_data_import_model
 from .product import create_product_upsert_dataframes
 
 # The Public API
@@ -23,6 +24,9 @@ __all__ = [
     'create_facility_contract_upsert_dataframes',
     'get_facility_contract_import_interval',
     'validate_facility_contract_import_data',
+    # meter_data
+    'create_serie_value_model',
+    'validate_meter_data_import_model',
     # product
     'create_product_upsert_dataframes',
 ]

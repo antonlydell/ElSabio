@@ -11,8 +11,10 @@ from .import_ import (
     create_facility_contract_upsert_dataframes,
     create_facility_upsert_dataframes,
     create_product_upsert_dataframes,
+    create_serie_value_model,
     get_facility_contract_import_interval,
     validate_facility_contract_import_data,
+    validate_meter_data_import_model,
 )
 
 # The Public API
@@ -22,6 +24,8 @@ __all__ = [
     'create_facility_contract_upsert_dataframes',
     'create_facility_upsert_dataframes',
     'create_product_upsert_dataframes',
+    'create_serie_value_model',
     'get_facility_contract_import_interval',
     'validate_facility_contract_import_data',
+    'validate_meter_data_import_model',
 ]
