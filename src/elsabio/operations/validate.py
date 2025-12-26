@@ -91,6 +91,7 @@ def validate_duplicate_rows(
     model: duckdb.DuckDBPyRelation,
     cols: Sequence[str] | None = None,
     count_colname: str = 'nr_duplicates',
+    exclude_rows_with_nulls: Sequence[str] | None = None,
     order_by: Sequence[tuple[str, SortOrder]] | None = None,
     index_cols: str | Sequence[str] | None = None,
     date_as_object: bool = True,
@@ -104,6 +105,10 @@ def validate_duplicate_rows(
 
     cols : Sequence[str] or None, default None
         The columns of `model` that together define a unique row.
+
+    exclude_rows_with_nulls : Sequence[str] or None, default None
+        The columns in which to exclude NULL values when counting duplicates.
+        If None NULL exclusion is omitted.
 
     count_colname : str, default 'nr_duplicates'
         The name of the column with the count of duplicates.
@@ -147,6 +152,9 @@ HAVING COUNT(*) > 1
 """  # noqa: S608
 
     rel = model.query(virtual_table_name=rel_name, sql_query=query)
+
+    if exclude_rows_with_nulls:
+        rel = rel.filter('OR '.join(f'{c} IS NOT NULL' for c in exclude_rows_with_nulls))
 
     if order_by:
         order = ', '.join(f'{c} {asc_desc}' for c, asc_desc in order_by)
