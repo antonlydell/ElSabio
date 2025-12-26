@@ -13,35 +13,38 @@ import click
 import duckdb
 
 # Local
-from elsabio.cli.core import Color, Obj, echo_with_log, exit_program
-from elsabio.cli.tariff_analyzer.import_.core import format_list_of_files, load_data_model_to_import
-from elsabio.config import ConfigManager
+from elsabio.cli.core import Color, echo_with_log, exit_program, load_resources
+from elsabio.cli.tariff_analyzer.import_.core import (
+    load_data_model_to_import,
+    move_processed_files,
+    validate_import_model,
+)
 from elsabio.config.tariff_analyzer import DataSource
-from elsabio.database import SessionFactory
 from elsabio.database.tariff_analyzer import (
     bulk_insert_facilities,
     bulk_update_facilities,
     load_facility_mapping_model,
     load_facility_type_mapping_model,
 )
-from elsabio.operations.file import move_files
-from elsabio.operations.tariff_analyzer import create_facility_upsert_dataframes
+from elsabio.operations.tariff_analyzer import (
+    create_facility_upsert_dataframes,
+    validate_facility_import_model,
+)
 
 
 @click.command(name='facility')
 @click.pass_context
 def facility(ctx: click.Context) -> None:
-    """Import facilities to the database of the Tariff Analyzer module."""
+    """Import facilities to the database of the Tariff Analyzer module"""
 
-    cm: ConfigManager = ctx.obj[Obj.CONFIG]
-    session_factory: SessionFactory = ctx.obj[Obj.SESSION_FACTORY]
+    cm, session_factory = load_resources(ctx=ctx)
     cfg = cm.tariff_analyzer.data.get(DataSource.FACILITY)
 
     if cfg is None:
         exit_program(
             error=True,
             ctx=ctx,
-            message='No data configuration found for "tariff_analyzer.data.facility"',
+            message=f'No configuration found for "tariff_analyzer.data.{DataSource.FACILITY}"!',
         )
 
     with session_factory() as session:
@@ -52,7 +55,8 @@ def facility(ctx: click.Context) -> None:
             if not result.ok:
                 exit_program(error=True, ctx=ctx, message=result.short_msg)
 
-            # TODO : Check for duplicates
+            if not validate_import_model(model=import_model, func=validate_facility_import_model):
+                exit_program(error=True, ctx=ctx)
 
             facility_model, result = load_facility_mapping_model(session)
             if not result.ok:
@@ -69,12 +73,9 @@ def facility(ctx: click.Context) -> None:
                 conn=conn,
             )
             if not result.ok:
-                if dfs.missing_facility_type.shape[0] > 0:
-                    echo_with_log(result.short_msg, log_level=logging.ERROR, color=Color.ERROR)
-                    click.echo(dfs.missing_facility_type)
-                    exit_program(error=True, ctx=ctx)
-
-                exit_program(error=True, ctx=ctx, message=result.short_msg)
+                echo_with_log(result.short_msg, log_level=logging.ERROR, color=Color.ERROR)
+                click.echo(dfs.invalid)
+                exit_program(error=True, ctx=ctx)
 
         result = bulk_insert_facilities(session=session, df=dfs.insert)
         if not result.ok:
@@ -84,14 +85,11 @@ def facility(ctx: click.Context) -> None:
         if not result.ok:
             exit_program(error=True, ctx=ctx, message=result.short_msg)
 
-        target_dir = cfg.path / 'success'
-        files, result = move_files(
-            source_dir=cfg.path, target_dir=target_dir, prepend_move_datetime=True
-        )
-        if not result.ok:
+        result = move_processed_files(source_dir=cfg.path)
+        if result.ok:
+            echo_with_log(result.short_msg)
+        else:
             exit_program(error=True, ctx=ctx, message=result.short_msg)
-
-        echo_with_log(f'Moved input files to "{target_dir}":\n{format_list_of_files(files)}\n')
 
         exit_program(
             error=False,
