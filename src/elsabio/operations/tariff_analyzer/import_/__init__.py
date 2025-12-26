@@ -6,7 +6,7 @@
 r"""The business logic for the data import to the Tariff Analyzer module."""
 
 # Local
-from .facility import FacilityUpsertDataFrames, create_facility_upsert_dataframes
+from .facility import create_facility_upsert_dataframes, validate_facility_import_model
 from .facility_contract import (
     create_facility_contract_upsert_dataframes,
     get_facility_contract_import_interval,
@@ -18,8 +18,8 @@ from .product import create_product_upsert_dataframes
 # The Public API
 __all__ = [
     # facility
-    'FacilityUpsertDataFrames',
     'create_facility_upsert_dataframes',
+    'validate_facility_import_model',
     # facility_contract
     'create_facility_contract_upsert_dataframes',
     'get_facility_contract_import_interval',
