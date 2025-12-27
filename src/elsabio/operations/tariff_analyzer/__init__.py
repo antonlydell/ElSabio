@@ -15,6 +15,7 @@ from .import_ import (
     validate_facility_contract_import_data,
     validate_facility_import_model,
     validate_meter_data_import_model,
+    validate_product_import_data,
 )
 
 # The Public API
@@ -28,4 +29,5 @@ __all__ = [
     'validate_facility_contract_import_data',
     'validate_facility_import_model',
     'validate_meter_data_import_model',
+    'validate_product_import_data',
 ]

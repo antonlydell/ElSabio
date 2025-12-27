@@ -13,7 +13,66 @@ import pandas as pd
 
 # Local
 from elsabio.core import OperationResult, has_required_columns
-from elsabio.models.tariff_analyzer import ProductDataFrameModel, ProductMappingDataFrameModel
+from elsabio.models.tariff_analyzer import (
+    ProductDataFrameModel,
+    ProductImportDataFrameModel,
+    ProductMappingDataFrameModel,
+)
+from elsabio.operations.validate import SortOrder, validate_duplicate_rows, validate_missing_values
+
+
+def validate_product_import_data(
+    model: duckdb.DuckDBPyRelation,
+) -> tuple[OperationResult, pd.DataFrame]:
+    r"""Validate the product import data.
+
+    Parameters
+    ----------
+    model : duckdb.DuckDBPyRelation
+        The data model with the products to import. Should contain
+        at least the columns `external_id` and `name` from the model
+        :class:`elsabio.models.tariff_analyzer.ProductImportDataFrameModel`.
+
+    Result
+    ------
+    result : elsabio.core.OperationResult
+        The result of the model validation.
+
+    df_invalid : pandas.DataFrame
+        A DataFrame containing the rows with invalid data.
+    """
+
+    c_external_id = ProductImportDataFrameModel.c_external_id
+    c_name = ProductImportDataFrameModel.c_name
+
+    cols = set(model.columns)
+    required_cols = (c_external_id, c_name)
+
+    result = has_required_columns(cols=cols, required_cols=set(required_cols))
+    if not result.ok:
+        return result, pd.DataFrame()
+
+    order_by: tuple[tuple[str, SortOrder]] = ((c_external_id, 'ASC'),)
+
+    result, df_invalid = validate_missing_values(
+        model=model, cols=required_cols, order_by=order_by, index_cols=c_external_id
+    )
+    if not result.ok:
+        return result, df_invalid
+
+    result, df_invalid = validate_duplicate_rows(
+        model=model, cols=(c_external_id,), order_by=order_by, index_cols=c_external_id
+    )
+    if not result.ok:
+        return result, df_invalid
+
+    result, df_invalid = validate_duplicate_rows(
+        model=model, cols=(c_name,), order_by=((c_name, 'ASC'),), index_cols=c_name
+    )
+    if not result.ok:
+        return result, df_invalid
+
+    return OperationResult(ok=True), pd.DataFrame()
 
 
 def create_product_upsert_dataframes(
