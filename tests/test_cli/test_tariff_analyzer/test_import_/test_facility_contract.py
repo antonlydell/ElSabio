@@ -9,7 +9,6 @@ r"""Unit tests for the module cli.tariff_analyzer.import_.facility_contract."""
 import re
 from datetime import date
 from pathlib import Path
-from unittest.mock import Mock
 
 # Third party
 import pandas as pd
@@ -19,9 +18,8 @@ from pandas.testing import assert_frame_equal
 from sqlalchemy import select
 
 # Local
-import elsabio.cli.main
 from elsabio.cli.main import main
-from elsabio.config import ConfigManager, load_config
+from elsabio.config import ConfigManager
 from elsabio.config.tariff_analyzer import DataSource
 from elsabio.database import URL, SessionFactory
 from elsabio.database.models.tariff_analyzer import Facility, FacilityContract, Product
@@ -192,7 +190,7 @@ def facility_contract_parquet_file_missing_required_columns(
 def facility_contract_parquet_file_missing_values_in_required_columns(
     facility_contract_model_to_import: FacilityContractImportDataFrameModel,
     config_data_import_method_file: tuple[str, ConfigManager],
-) -> tuple[Path, tuple[str, str]]:
+) -> tuple[Path, tuple[str, ...]]:
     r"""A facility contract parquet file with missing values for required columns.
 
     The 2 facility contracts have missing values for the
@@ -221,12 +219,53 @@ def facility_contract_parquet_file_missing_values_in_required_columns(
     df = facility_contract_model_to_import.df.copy()
     df.loc[3, c_date_id] = None
     df.loc[4, c_customer_type_code] = None
-    ean_codes = (str(df.loc[3, c_ean]), str(df.loc[4, c_ean]))
+    df.loc[5, c_ean] = None
+    ean_codes = tuple(str(df.loc[i, c_ean]) for i in range(3, 6))
 
     file = facility_data.path / 'facility_contracts.parquet'
     df.to_parquet(path=file)
 
     return file, ean_codes
+
+
+@pytest.fixture
+def facility_contract_parquet_file_with_duplicate_rows(
+    facility_contract_model_to_import: FacilityContractImportDataFrameModel,
+    config_data_import_method_file: tuple[str, ConfigManager],
+) -> tuple[Path, str]:
+    r"""A facility contract parquet file with duplicate rows.
+
+    Contains 1 duplicate row over the columns `ean` and `date_id`.
+
+    Returns
+    -------
+    file : pathlib.Path
+        The full path to the parquet file.
+
+    ean_code : str
+        The EAN code of the duplicate row.
+    """
+
+    _, cm = config_data_import_method_file
+    data = cm.tariff_analyzer.data.get(DataSource.FACILITY_CONTRACT)
+
+    assert data is not None, (
+        f'Missing configuration for "tariff_analyzer.data.{DataSource.FACILITY_CONTRACT}"!'
+    )
+
+    c_ean = FacilityContractImportDataFrameModel.c_ean
+    c_fuse_size = FacilityContractImportDataFrameModel.c_fuse_size
+
+    df = facility_contract_model_to_import.df.copy()
+    duplicate_row = df.shape[0] + 1
+    df.loc[duplicate_row, :] = df.loc[3, :]
+    df.loc[duplicate_row, c_fuse_size] = 93
+    ean_code = str(df.loc[3, c_ean])
+
+    file = data.path / 'facility_contracts.parquet'
+    df.to_parquet(path=file)
+
+    return file, ean_code
 
 
 @pytest.fixture
@@ -440,19 +479,16 @@ class TestTariffAnalyzerImportFacilityContractCommand:
         # Clean up - None
         # ===========================================================
 
-    def test_no_config_found(
-        self, config_data_no_data_import: ConfigManager, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    @pytest.mark.usefixtures('mocked_load_config_with_no_import_data')
+    def test_no_config_found(self) -> None:
         r"""Test to import facility contracts when no configuration is defined."""
 
         # Setup
         # ===========================================================
-        cm = config_data_no_data_import
-
-        m = Mock(spec_set=load_config, name='mocked_load_config', return_value=cm)
-        monkeypatch.setattr(elsabio.cli.main, 'load_config', m)
-
-        message_exp = 'No data configuration found for "tariff_analyzer.data.facility_contract"!\n'
+        message_exp = (
+            f'No data configuration found for '
+            f'"tariff_analyzer.data.{DataSource.FACILITY_CONTRACT}"!\n'
+        )
 
         runner = CliRunner()
         args = ['ta', 'import', 'facility-contract']
@@ -513,7 +549,7 @@ class TestTariffAnalyzerImportFacilityContractCommand:
     def test_missing_values_in_required_columns(
         self,
         facility_contract_parquet_file_missing_values_in_required_columns: tuple[
-            Path, tuple[str, str]
+            Path, tuple[str, ...]
         ],
     ) -> None:
         r"""Test to import facility contracts with missing values in required columns."""
@@ -521,9 +557,11 @@ class TestTariffAnalyzerImportFacilityContractCommand:
         # Setup
         # ===========================================================
         _, eans_exp = facility_contract_parquet_file_missing_values_in_required_columns
-        message_exp = (
-            f'Found facility contracts ({len(eans_exp)}) with missing values in required columns!'
+        required_cols = (
+            FacilityContractImportDataFrameModel.c_ean,
+            FacilityContractImportDataFrameModel.c_date_id,
         )
+        message_exp = f'Found rows ({len(eans_exp)}) with missing values in required columns'
 
         runner = CliRunner()
         args = ['ta', 'import', 'facility-contract']
@@ -542,6 +580,50 @@ class TestTariffAnalyzerImportFacilityContractCommand:
 
         for ean in eans_exp:
             assert ean in output, f'EAN "{ean}" missing in terminal output!'
+
+        for col in required_cols:
+            assert col in output, f'Required column "{col}" missing in terminal output!'
+
+        # Clean up - None
+        # ===========================================================
+
+    @pytest.mark.usefixtures(
+        'default_config_file_location_does_not_exist',
+        'config_import_method_file_in_config_file_env_var',
+    )
+    def test_duplicate_rows(
+        self, facility_contract_parquet_file_with_duplicate_rows: tuple[Path, str]
+    ) -> None:
+        r"""Test to import facility contracts with duplicate rows."""
+
+        # Setup
+        # ===========================================================
+        _, ean_exp = facility_contract_parquet_file_with_duplicate_rows
+        required_cols = (
+            FacilityContractImportDataFrameModel.c_ean,
+            FacilityContractImportDataFrameModel.c_date_id,
+        )
+        message_exp = 'Found duplicate rows (1) over columns:'
+
+        runner = CliRunner()
+        args = ['ta', 'import', 'facility-contract']
+
+        # Exercise
+        # ===========================================================
+        result = runner.invoke(cli=main, args=args, catch_exceptions=False)
+
+        # Verify
+        # ===========================================================
+        output = result.output
+        print(output)
+
+        assert result.exit_code == 1, 'Exit code is not 1!'
+        assert message_exp in output, 'Expected output message missing in terminal output!'
+
+        assert ean_exp in output, f'EAN "{ean_exp}" missing in terminal output!'
+
+        for col in required_cols:
+            assert col in output, f'Required column "{col}" missing in terminal output!'
 
         # Clean up - None
         # ===========================================================
@@ -599,7 +681,7 @@ class TestTariffAnalyzerImportFacilityContractCommand:
         # Setup
         # ===========================================================
         _, eans_exp = facility_contract_parquet_file_date_id_not_at_month_start
-        message_exp = f'Found facility contracts ({len(eans_exp)}) not at start of month!'
+        message_exp = f'Found rows ({len(eans_exp)}) not at start of month!'
 
         runner = CliRunner()
         args = ['ta', 'import', 'facility-contract']
