@@ -8,6 +8,7 @@ dependencies:
   - pydantic >=2.0
   - pydantic-settings >=2.10
   - python >=3.12
+  - python-duckdb >=1.0
   - streamlit >=1.46
   - streamlit_passwordless >=0.16
   - sqlalchemy >=2.0
@@ -23,3 +24,6 @@ dependencies:
   # Tools
   - ruff >=0.12
   - mypy >=1.0
+
+  # Types
+  - pandas-stubs >=2.0
