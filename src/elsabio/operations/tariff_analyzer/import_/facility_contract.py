@@ -24,16 +24,22 @@ from elsabio.models.tariff_analyzer import (
     ProductMappingDataFrameModel,
 )
 from elsabio.operations.core import UpsertDataFrames
+from elsabio.operations.validate import (
+    SortOrder,
+    validate_at_start_of_month,
+    validate_duplicate_rows,
+    validate_missing_values,
+)
 
 
 def validate_facility_contract_import_data(
-    import_model: duckdb.DuckDBPyRelation,
+    model: duckdb.DuckDBPyRelation,
 ) -> tuple[OperationResult, pd.DataFrame]:
     r"""Validate the facility contract import data.
 
     Parameters
     ----------
-    import_model : duckdb.DuckDBPyRelation
+    model : duckdb.DuckDBPyRelation
         The data model with the facility contracts to import. Should contain
         at least the columns `ean`, `date_id` and `customer_type_code` from the model
         :class:`elsabio.models.tariff_analyzer.FacilityContractImportDataFrameModel`.
@@ -51,44 +57,37 @@ def validate_facility_contract_import_data(
     c_ean = FacilityContractImportDataFrameModel.c_ean
     c_date_id = FacilityContractImportDataFrameModel.c_date_id
     c_customer_type_code_import = FacilityContractImportDataFrameModel.c_customer_type_code
-    cols = set(import_model.columns)
 
-    result = has_required_columns(
-        cols=cols, required_cols={c_ean, c_date_id, c_customer_type_code_import}
-    )
+    cols = set(model.columns)
+    required_cols = (c_ean, c_date_id, c_customer_type_code_import)
+
+    result = has_required_columns(cols=cols, required_cols=set(required_cols))
     if not result.ok:
         return result, pd.DataFrame()
 
-    required_cols_select_str = f'{c_ean}, {c_date_id}, {c_customer_type_code_import}'
+    order_by: tuple[tuple[str, SortOrder], ...] = ((c_ean, 'ASC'), (c_date_id, 'ASC'))
+    index_cols = [c_ean, c_date_id]
 
-    df_invalid = (  # Missing values in non-nullable columns
-        import_model.select(required_cols_select_str)
-        .filter(f'{c_ean} IS NULL OR {c_date_id} IS NULL OR {c_customer_type_code_import} IS NULL')
-        .order(f'{c_ean} ASC')
-        .to_df()
-        .set_index(c_ean)
+    result, df_invalid = validate_missing_values(
+        model=model, cols=required_cols, order_by=order_by, index_cols=index_cols
     )
-    if (nr_invalid := df_invalid.shape[0]) > 0:
-        result = OperationResult(
-            ok=False,
-            short_msg=(
-                f'Found facility contracts ({nr_invalid}) with missing values in required columns!'
-            ),
-        )
+    if not result.ok:
         return result, df_invalid
 
-    df_invalid = (  # Facility contracts not at the start of a month
-        import_model.select(required_cols_select_str)
-        .filter(f'day({c_date_id}) != 1')
-        .order(f'{c_ean} ASC, {c_date_id} ASC')
-        .to_df()
-        .set_index(c_ean)
+    result, df_invalid = validate_duplicate_rows(
+        model=model, cols=(c_ean, c_date_id), order_by=order_by, index_cols=index_cols
     )
-    if (nr_invalid := df_invalid.shape[0]) > 0:
-        result = OperationResult(
-            ok=False,
-            short_msg=(f'Found facility contracts ({nr_invalid}) not at start of month!'),
-        )
+    if not result.ok:
+        return result, df_invalid
+
+    result, df_invalid = validate_at_start_of_month(
+        model=model,
+        date_col=c_date_id,
+        display_cols=required_cols,
+        order_by=order_by,
+        index_cols=index_cols,
+    )
+    if not result.ok:
         return result, df_invalid
 
     return OperationResult(ok=True), pd.DataFrame()
@@ -294,7 +293,7 @@ ORDER BY
             ok=False,
             short_msg=(
                 f'Found facility contracts ({nr_invalid}) with '
-                'invalid values for column "customer_type_code"!'
+                f'invalid values for column "{c_customer_type_code_import}"!'
             ),
         )
     else:
