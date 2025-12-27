@@ -19,6 +19,7 @@ from elsabio.cli.display import display_dataframe
 from elsabio.cli.tariff_analyzer.import_.core import (
     load_data_model_to_import,
     move_processed_files,
+    validate_import_model,
 )
 from elsabio.config.tariff_analyzer import DataSource
 from elsabio.core import OperationResult
@@ -42,32 +43,6 @@ from elsabio.operations.tariff_analyzer import (
     get_facility_contract_import_interval,
     validate_facility_contract_import_data,
 )
-
-
-def _validate_import_model(import_model: duckdb.DuckDBPyRelation) -> bool:
-    r"""Validate the import data model.
-
-    Parameters
-    ----------
-    import_model : duckdb.DuckDBPyRelation
-        The data model with the facility contracts to import.
-
-    Returns
-    -------
-    bool
-        True if `import_model` is valid and False otherwise.
-    """
-
-    result, df_invalid = validate_facility_contract_import_data(import_model=import_model)
-
-    if not result.ok:
-        echo_with_log(result.short_msg, log_level=logging.ERROR, color=Color.ERROR)
-        if df_invalid.shape[0] > 0:
-            display_dataframe(df_invalid)
-
-        return False
-
-    return True
 
 
 def _upsert_facility_contracts(
@@ -148,9 +123,11 @@ def _create_upsert_dataframes(
         conn=conn,
     )
     if not result.ok:
-        echo_with_log(result.short_msg, log_level=logging.ERROR, color=Color.ERROR)
-        if dfs.invalid.shape[0] > 0:
-            display_dataframe(dfs.invalid)
+        echo_with_log(
+            message=f'{result.short_msg}\n{display_dataframe(dfs.invalid, as_str=True)}\n',
+            log_level=logging.ERROR,
+            color=Color.ERROR,
+        )
 
     return dfs.insert, dfs.update, result
 
@@ -178,7 +155,9 @@ def facility_contract(ctx: click.Context) -> None:  # noqa: C901
             if not result.ok:
                 exit_program(error=True, ctx=ctx, message=result.short_msg)
 
-            if not _validate_import_model(import_model=import_model):
+            if not validate_import_model(
+                model=import_model, func=validate_facility_contract_import_data
+            ):
                 exit_program(error=True, ctx=ctx)
 
             start_date, end_date, result = get_facility_contract_import_interval(
