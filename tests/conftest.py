@@ -7,6 +7,7 @@ r"""Fixtures for testing ElSabio."""
 
 # Standard library
 import io
+import logging
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -35,6 +36,24 @@ from tests.config import STATIC_FILES_CONFIG_BASE_DIR
 # =================================================================================================
 # Config
 # =================================================================================================
+
+LOGGER = logging.getLogger()
+
+
+@pytest.fixture(autouse=True)
+def reset_log_handlers():
+    r"""Ensure that log handlers are reset after every test.
+
+    This fixture makes sure that tests that use the `capsys` fixture do not cause
+    failures for other tests downstream. When `capsys` is torn down at the end
+    of a test it closes the stream it captures and thus subsequent tests that
+    tries to write to stdout or stderr will try to write to a closed stream,
+    which will raise: "ValueError: I/O operation on closed file." and fail the test.
+    """
+
+    before_handlers = list(LOGGER.handlers)
+    yield
+    LOGGER.handlers = before_handlers
 
 
 @pytest.fixture
