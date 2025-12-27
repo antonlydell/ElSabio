@@ -10,17 +10,22 @@ import click
 import duckdb
 
 # Local
-from elsabio.cli.core import Obj, echo_with_log, exit_program
-from elsabio.cli.tariff_analyzer.import_.core import load_data_model_to_import, move_processed_files
-from elsabio.config import ConfigManager
+from elsabio.cli.core import echo_with_log, exit_program, load_resources
+from elsabio.cli.tariff_analyzer.import_.core import (
+    load_data_model_to_import,
+    move_processed_files,
+    validate_import_model,
+)
 from elsabio.config.tariff_analyzer import DataSource
-from elsabio.database import SessionFactory
 from elsabio.database.tariff_analyzer import (
     bulk_insert_products,
     bulk_update_products,
     load_product_mapping_model,
 )
-from elsabio.operations.tariff_analyzer import create_product_upsert_dataframes
+from elsabio.operations.tariff_analyzer import (
+    create_product_upsert_dataframes,
+    validate_product_import_data,
+)
 
 
 @click.command(name='product')
@@ -28,15 +33,14 @@ from elsabio.operations.tariff_analyzer import create_product_upsert_dataframes
 def product(ctx: click.Context) -> None:
     """Import products to the database of the Tariff Analyzer module"""
 
-    cm: ConfigManager = ctx.obj[Obj.CONFIG]
-    session_factory: SessionFactory = ctx.obj[Obj.SESSION_FACTORY]
+    cm, session_factory = load_resources(ctx=ctx)
     cfg = cm.tariff_analyzer.data.get(DataSource.PRODUCT)
 
     if cfg is None:
         exit_program(
             error=True,
             ctx=ctx,
-            message='No data configuration found for "tariff_analyzer.data.product"!',
+            message=f'No data configuration found for "tariff_analyzer.data.{DataSource.PRODUCT}"!',
         )
 
     with session_factory() as session:
@@ -47,7 +51,8 @@ def product(ctx: click.Context) -> None:
             if not result.ok:
                 exit_program(error=True, ctx=ctx, message=result.short_msg)
 
-            # TODO : Check for duplicates
+            if not validate_import_model(model=import_model, func=validate_product_import_data):
+                exit_program(error=True, ctx=ctx)
 
             product_model, result = load_product_mapping_model(session)
             if not result.ok:
