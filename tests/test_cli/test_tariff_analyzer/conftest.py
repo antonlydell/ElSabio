@@ -455,21 +455,6 @@ def config_import_method_file_in_config_file_env_var(
 
 
 @pytest.fixture
-def config_data_no_data_import() -> ConfigManager:
-    r"""A minimal ElSabio config without the Tariff Analyzer data section.
-
-    Returns
-    -------
-    cm : elsabio.config.ConfigManager
-        The configuration.
-    """
-
-    return ConfigManager(
-        bwp=BitwardenPasswordlessConfig(public_key='public_key', private_key='private_key')
-    )
-
-
-@pytest.fixture
 def mocked_load_config_with_no_import_data(
     monkeypatch: pytest.MonkeyPatch,
 ) -> tuple[Mock, ConfigManager]:

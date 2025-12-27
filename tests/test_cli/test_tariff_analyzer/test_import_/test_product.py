@@ -8,7 +8,6 @@ r"""Unit tests for the module cli.tariff_analyzer.import_.product."""
 # Standard library
 import re
 from pathlib import Path
-from unittest.mock import Mock
 
 # Third party
 import pandas as pd
@@ -18,9 +17,8 @@ from pandas.testing import assert_frame_equal
 from sqlalchemy import select
 
 # Local
-import elsabio.cli.main
 from elsabio.cli.main import main
-from elsabio.config import ConfigManager, load_config
+from elsabio.config import ConfigManager
 from elsabio.config.tariff_analyzer import DataSource
 from elsabio.database import URL, SessionFactory
 from elsabio.database.models.tariff_analyzer import Product
@@ -102,6 +100,122 @@ def product_import_parquet_file(
     product_model_to_import.df.to_parquet(path=file)
 
     return file
+
+
+@pytest.fixture
+def product_parquet_file_missing_values_in_required_columns(
+    product_model_to_import: ProductImportDataFrameModel,
+    config_data_import_method_file: tuple[str, ConfigManager],
+) -> tuple[Path, tuple[str, str]]:
+    r"""A product parquet file with missing values for required columns.
+
+    Two products have missing values for the required columns `external_id` and `name`.
+
+    Returns
+    -------
+    file : pathlib.Path
+        The full path to the parquet file.
+
+    external_ids : tuple[str, str]
+        The external ID:s of the products with missing values.
+    """
+
+    _, cm = config_data_import_method_file
+    data = cm.tariff_analyzer.data.get(DataSource.PRODUCT)
+
+    assert data is not None, (
+        f'Missing configuration for "tariff_analyzer.data.{DataSource.PRODUCT}"!'
+    )
+
+    c_external_id = ProductImportDataFrameModel.c_external_id
+    c_name = ProductImportDataFrameModel.c_name
+
+    df = product_model_to_import.df.copy()
+    df.loc[3, c_external_id] = None
+    df.loc[5, c_name] = None
+    external_ids = (str(df.loc[3, c_external_id]), str(df.loc[5, c_external_id]))
+
+    file = data.path / 'products.parquet'
+    df.to_parquet(path=file)
+
+    return file, external_ids
+
+
+@pytest.fixture
+def product_parquet_file_with_duplicate_external_id_rows(
+    product_model_to_import: ProductImportDataFrameModel,
+    config_data_import_method_file: tuple[str, ConfigManager],
+) -> tuple[Path, str]:
+    r"""A product parquet file with duplicate rows of the `external_id` column.
+
+
+    Returns
+    -------
+    file : pathlib.Path
+        The full path to the parquet file.
+
+    external_id : str
+        The external_id of the duplicate row.
+    """
+
+    _, cm = config_data_import_method_file
+    data = cm.tariff_analyzer.data.get(DataSource.PRODUCT)
+
+    assert data is not None, (
+        f'Missing configuration for "tariff_analyzer.data.{DataSource.PRODUCT}"!'
+    )
+
+    c_external_id = ProductImportDataFrameModel.c_external_id
+    c_name = ProductImportDataFrameModel.c_name
+
+    df = product_model_to_import.df.copy()
+    duplicate_row = df.shape[0] + 1
+    df.loc[duplicate_row, :] = df.loc[3, :]
+    df.loc[duplicate_row, c_name] = 'test'
+    external_id = str(df.loc[3, c_external_id])
+
+    file = data.path / 'products.parquet'
+    df.to_parquet(path=file)
+
+    return file, external_id
+
+
+@pytest.fixture
+def product_parquet_file_with_duplicate_name_rows(
+    product_model_to_import: ProductImportDataFrameModel,
+    config_data_import_method_file: tuple[str, ConfigManager],
+) -> tuple[Path, str]:
+    r"""A product parquet file with duplicate rows fo the `name` column.
+
+    Returns
+    -------
+    file : pathlib.Path
+        The full path to the parquet file.
+
+    name : str
+        The name of the duplicate row.
+    """
+
+    _, cm = config_data_import_method_file
+    data = cm.tariff_analyzer.data.get(DataSource.PRODUCT)
+
+    assert data is not None, (
+        f'Missing configuration for "tariff_analyzer.data.{DataSource.PRODUCT}"!'
+    )
+
+    c_external_id = ProductImportDataFrameModel.c_external_id
+    c_name = ProductImportDataFrameModel.c_name
+
+    df = product_model_to_import.df.copy()
+    duplicate_row = df.shape[0] + 1
+    df.loc[duplicate_row, :] = df.loc[3, :]
+    df.loc[duplicate_row, c_external_id] = 'unique_new'
+    name = str(df.loc[3, c_name])
+
+    file = data.path / 'products.parquet'
+    df.to_parquet(path=file)
+
+    return file, name
 
 
 @pytest.fixture
@@ -256,19 +370,15 @@ class TestTariffAnalyzerImportProductCommand:
         # Clean up - None
         # ===========================================================
 
-    def test_no_config_found(
-        self, config_data_no_data_import: ConfigManager, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    @pytest.mark.usefixtures('mocked_load_config_with_no_import_data')
+    def test_no_config_found(self) -> None:
         r"""Test to import products when no product import configuration is defined."""
 
         # Setup
         # ===========================================================
-        cm = config_data_no_data_import
-
-        m = Mock(spec_set=load_config, name='mocked_load_config', return_value=cm)
-        monkeypatch.setattr(elsabio.cli.main, 'load_config', m)
-
-        message_exp = 'No data configuration found for "tariff_analyzer.data.product"!\n'
+        message_exp = (
+            f'No data configuration found for "tariff_analyzer.data.{DataSource.PRODUCT}"!\n'
+        )
 
         runner = CliRunner()
         args = ['ta', 'import', 'product']
@@ -287,23 +397,23 @@ class TestTariffAnalyzerImportProductCommand:
         # Clean up - None
         # ===========================================================
 
+    @pytest.mark.usefixtures(
+        'default_config_file_location_does_not_exist',
+        'config_import_method_file_in_config_file_env_var',
+    )
     def test_no_input_file_found(
-        self,
-        config_data_import_method_file: tuple[str, ConfigManager],
-        monkeypatch: pytest.MonkeyPatch,
+        self, config_data_import_method_file: tuple[str, ConfigManager]
     ) -> None:
         r"""Test to import products when no input parquet file exists."""
 
         # Setup
         # ===========================================================
         _, cm = config_data_import_method_file
+        cfg = cm.tariff_analyzer.data.get(DataSource.PRODUCT)
 
-        m = Mock(spec_set=load_config, name='mocked_load_config', return_value=cm)
-        monkeypatch.setattr(elsabio.cli.main, 'load_config', m)
-
-        data = cm.tariff_analyzer.data
-        cfg = data.get(DataSource.PRODUCT)
-        assert cfg is not None, 'Missing configuration "tariff_analyzer.data.product"!'
+        assert cfg is not None, (
+            f'Missing configuration "tariff_analyzer.data.{DataSource.PRODUCT}"!'
+        )
 
         pattern_exp = f'{cfg.path}/*.parquet'
 
@@ -327,6 +437,102 @@ class TestTariffAnalyzerImportProductCommand:
     @pytest.mark.usefixtures(
         'default_config_file_location_does_not_exist',
         'config_import_method_file_in_config_file_env_var',
+    )
+    def test_missing_values_in_required_columns(
+        self,
+        product_parquet_file_missing_values_in_required_columns: tuple[Path, tuple[str, str]],
+    ) -> None:
+        r"""Test to import products with missing values in required columns."""
+
+        # Setup
+        # ===========================================================
+        _, external_ids_exp = product_parquet_file_missing_values_in_required_columns
+        required_cols = (
+            ProductImportDataFrameModel.c_external_id,
+            ProductImportDataFrameModel.c_name,
+        )
+        message_exp = (
+            f'Found rows ({len(external_ids_exp)}) with missing values in required columns'
+        )
+
+        runner = CliRunner()
+        args = ['ta', 'import', 'product']
+
+        # Exercise
+        # ===========================================================
+        result = runner.invoke(cli=main, args=args, catch_exceptions=False)
+
+        # Verify
+        # ===========================================================
+        output = result.output
+        print(output)
+
+        assert result.exit_code == 1, 'Exit code is not 1!'
+        assert message_exp in output, 'Expected output message missing in terminal output!'
+
+        for col in required_cols:
+            assert col in output, f'Required column "{col}" missing in terminal output!'
+
+        # Clean up - None
+        # ===========================================================
+
+    @pytest.mark.usefixtures(
+        'default_config_file_location_does_not_exist',
+        'config_import_method_file_in_config_file_env_var',
+    )
+    @pytest.mark.parametrize(
+        ('fixture_func', 'required_col'),
+        [
+            pytest.param(
+                'product_parquet_file_with_duplicate_external_id_rows',
+                ProductImportDataFrameModel.c_external_id,
+                id='external_id',
+            ),
+            pytest.param(
+                'product_parquet_file_with_duplicate_name_rows',
+                ProductImportDataFrameModel.c_name,
+                id='name',
+            ),
+        ],
+    )
+    def test_duplicate_rows(
+        self, fixture_func: str, required_col: str, request: pytest.FixtureRequest
+    ) -> None:
+        r"""Test to import products with duplicate rows."""
+
+        # Setup
+        # ===========================================================
+        _, external_id_exp = request.getfixturevalue(fixture_func)
+        message_exp = 'Found duplicate rows (1) over columns:'
+
+        runner = CliRunner()
+        args = ['ta', 'import', 'product']
+
+        # Exercise
+        # ===========================================================
+        result = runner.invoke(cli=main, args=args, catch_exceptions=False)
+
+        # Verify
+        # ===========================================================
+        output = result.output
+        print(output)
+
+        assert result.exit_code == 1, 'Exit code is not 1!'
+        assert message_exp in output, 'Expected output message missing in terminal output!'
+
+        assert external_id_exp in output, (
+            f'external_id "{external_id_exp}" missing in terminal output!'
+        )
+        assert required_col in output, (
+            f'Required column "{required_col}" missing in terminal output!'
+        )
+
+        # Clean up - None
+        # ===========================================================
+
+    @pytest.mark.usefixtures(
+        'default_config_file_location_does_not_exist',
+        'config_import_method_file_in_config_file_env_var',
         'product_import_parquet_file_missing_external_id_column',
     )
     def test_missing_external_id_column(self) -> None:
@@ -334,9 +540,13 @@ class TestTariffAnalyzerImportProductCommand:
 
         # Setup
         # ===========================================================
+        c_external_id = ProductImportDataFrameModel.c_external_id
+        c_name = ProductImportDataFrameModel.c_name
+        c_description = ProductImportDataFrameModel.c_description
+
         message_exp = 'Missing the required columns!'
-        required_cols_exp = "('external_id', 'name')"
-        available_cols_exp = "('description', 'name')"
+        required_cols_exp = f"('{c_external_id}', '{c_name}')"
+        available_cols_exp = f"('{c_description}', '{c_name}')"
 
         runner = CliRunner()
         args = ['ta', 'import', 'product']
