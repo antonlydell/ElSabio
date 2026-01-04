@@ -391,7 +391,7 @@ class TestTariffAnalyzerImportFacilityContractCommand:
             assert df_imported.shape == df_exp.shape, (
                 'The shape of the imported DataFrame is incorrect!'
             )
-            df_imported = df_imported.loc[:, df_exp.columns]
+            df_imported = df_imported.loc[:, df_exp.columns.tolist()]
 
             assert_frame_equal(df_imported, df_exp)
 
