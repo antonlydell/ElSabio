@@ -11,6 +11,7 @@ from .facility import bulk_insert_facilities, bulk_update_facilities, load_facil
 from .facility_contract import (
     bulk_insert_facility_contracts,
     bulk_update_facility_contracts,
+    load_facility_contract_extended_model,
     load_facility_contract_mapping_model,
 )
 from .facility_type import load_facility_type_mapping_model
@@ -28,6 +29,7 @@ __all__ = [
     'bulk_insert_facility_contracts',
     'bulk_update_facility_contracts',
     'load_facility_contract_mapping_model',
+    'load_facility_contract_extended_model',
     # facility_type
     'load_facility_type_mapping_model',
     # product
