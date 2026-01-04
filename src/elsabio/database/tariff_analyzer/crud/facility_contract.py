@@ -11,7 +11,7 @@ from datetime import date
 
 # Third party
 import pandas as pd
-from sqlalchemy import select
+from sqlalchemy import and_, select
 
 # Local
 from elsabio.core import OperationResult
@@ -21,9 +21,10 @@ from elsabio.database.core import (
     bulk_update_table,
     load_sql_query_as_dataframe,
 )
-from elsabio.database.models.tariff_analyzer import FacilityContract
+from elsabio.database.models.tariff_analyzer import Facility, FacilityContract, FacilityType
 from elsabio.models.tariff_analyzer import (
     FacilityContractDataFrameModel,
+    FacilityContractExtendedDataFrameModel,
     FacilityContractMappingDataFrameModel,
 )
 
@@ -37,6 +38,9 @@ def load_facility_contract_mapping_model(
     ----------
     session : elsabio.db.Session
         An active database session.
+
+    date_ids : Sequence[datetime.date]
+        The months in which to load facility contracts.
 
     Returns
     -------
@@ -65,6 +69,79 @@ def load_facility_contract_mapping_model(
     )
 
     return FacilityContractMappingDataFrameModel(df=df), result
+
+
+def load_facility_contract_extended_model(
+    session: Session, start_date: date, end_date: date | None = None
+) -> tuple[FacilityContractExtendedDataFrameModel, OperationResult]:
+    r"""Load facility contracts in specified interval.
+
+    Parameters
+    ----------
+    session : elsabio.db.Session
+        An active database session.
+
+    start_date : datetime.date
+        The start date of the interval in which to load facility contracts (inclusive).
+
+    end_date : datetime.date or None
+        The end date of the interval in which to load facility contracts
+        (exclusive). If None the interval is open and unbounded.
+
+    Returns
+    -------
+    model : elsabio.models.tariff_analyzer.FacilityContractExtendedDataFrameModel
+        The extended dataset with facility contracts.
+
+    result : elsabio.core.OperationResult
+        The result of loading the extended facility contract model from the database.
+    """
+
+    if end_date is None:
+        where_clause = FacilityContract.date_id >= start_date
+    else:
+        where_clause = and_(
+            FacilityContract.date_id >= start_date,
+            FacilityContract.date_id < end_date,
+        )
+
+    query = (
+        select(
+            FacilityContract.facility_id.label(
+                FacilityContractExtendedDataFrameModel.c_facility_id
+            ),
+            FacilityContract.date_id.label(FacilityContractExtendedDataFrameModel.c_date_id),
+            FacilityContract.fuse_size.label(FacilityContractExtendedDataFrameModel.c_fuse_size),
+            FacilityContract.subscribed_power.label(
+                FacilityContractExtendedDataFrameModel.c_subscribed_power
+            ),
+            FacilityContract.connection_power.label(
+                FacilityContractExtendedDataFrameModel.c_connection_power
+            ),
+            FacilityContract.account_nr.label(FacilityContractExtendedDataFrameModel.c_account_nr),
+            FacilityType.facility_type_id.label(
+                FacilityContractExtendedDataFrameModel.c_facility_type_id
+            ),
+            FacilityContract.customer_type_id.label(
+                FacilityContractExtendedDataFrameModel.c_customer_type_id
+            ),
+            FacilityContract.product_id.label(FacilityContractExtendedDataFrameModel.c_product_id),
+        )
+        .join(FacilityContract.facility)
+        .join(Facility.facility_type)
+        .where(where_clause)
+        .order_by(FacilityContract.date_id.asc(), FacilityContract.facility_id.asc())
+    )
+
+    df, result = load_sql_query_as_dataframe(
+        query=query,
+        session=session,
+        dtypes=FacilityContractExtendedDataFrameModel.dtypes,
+        parse_dates=FacilityContractExtendedDataFrameModel.parse_dates,
+        error_msg='Error loading facility contracts from the database!',
+    )
+
+    return FacilityContractExtendedDataFrameModel(df=df), result
 
 
 def bulk_insert_facility_contracts(session: Session, df: pd.DataFrame) -> OperationResult:

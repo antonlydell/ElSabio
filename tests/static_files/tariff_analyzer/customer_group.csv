@@ -1,0 +1,16 @@
+customer_group_id;code;name;min_fuse_size;max_fuse_size;min_subscribed_power;max_subscribed_power;min_connection_power;max_connection_power;min_bound_included;max_bound_included;facility_type_id;customer_type_id;product_id;not_product_id;mapping_strategy_id;mapping_strategy_code;description
+1;apartment;Apartment;16;16;11;;;;1;1;1;;1;;4;product;Apartments are mapped by their product.
+2;16_A;16 A;16;16;;;;;1;1;1;;;1;1;fuse_size;Facilities with 16 A fuse size.
+3;20_A;20 A;20;20;;;;;1;1;1;;;;1;fuse_size;Facilities with 20 A fuse size.
+4;25_A;25 A;25;25;;;;;1;1;1;;;;1;fuse_size;Facilities with 25 A fuse size.
+5;35_A;35 A;35;35;;;;;1;1;1;;;;1;fuse_size;Facilities with 35 A fuse size.
+6;50_A;50 A;50;50;;;;;1;1;1;;;;1;fuse_size;Facilities with 50 A fuse size.
+7;63_A;63 A;63;63;;;;;1;1;1;;;;1;fuse_size;Facilities with 63 A fuse size.
+8;80_A_125_A;[80 A - 125 A];80;125;;;;;1;0;1;;;;1;fuse_size;Facilities with >= 80 <= 125 A fuse size.
+9;130_A_150_A;(130 A - 150 A);130;150;;;;;0;0;1;;;;1;fuse_size;Facilities with > 130 A  < 150 A fuse size.
+10;low_voltage_80-120_kW;Low Voltage 80-120 kW;;;80;120;;;1;1;1;2;;;2;subscribed_power;Low voltage facilities with subscribed power between 80 to 120 kW.
+11;low_voltage_120-180_kW;Low Voltage 120-180 kW;;;120;180;;;0;1;1;;;;2;subscribed_power;Low voltage facilities with subscribed power between 80 to 120 kW.
+12;high_voltage_500-1000_kW;High Voltage 500-1000 kW;;;500;1000;;;1;1;1;;;;2;subscribed_power;High voltage facilities with subscribed power between 0,5 to 1 MW.
+13;high_voltage_gt_1000_kW;High Voltage > 1000 kW;;;1000;;;;0;1;1;;;;2;subscribed_power;High voltage facilities with subscribed power > 1 MW.
+14;production_lt_1000_kW;Production < 1000 kW;;;;;0;1000;1;0;2;;;;3;connection_power;Production facilities with a connection power < 1 MW.
+15;production_ge_1000_kW;Production >= 1000 kW;;;;;1000;;1;1;2;;;;3;connection_power;Production facilities connection power >= 1 MW.

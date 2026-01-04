@@ -6,7 +6,7 @@
 r"""The core data models of ElSabio."""
 
 # Standard library
-from collections.abc import Hashable, Mapping
+from collections.abc import Hashable
 from enum import StrEnum
 from typing import Any, ClassVar
 
@@ -19,7 +19,7 @@ from streamlit_passwordless import User as User
 # Local
 from elsabio.exceptions import ElSabioError
 
-type DtypeMapping = Mapping[Hashable, str]
+type DtypeMapping = dict[Hashable, str]
 type ColumnList = list[str]
 
 

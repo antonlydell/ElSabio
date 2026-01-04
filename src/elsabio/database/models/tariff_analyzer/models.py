@@ -197,7 +197,9 @@ class Product(AuditColumnsMixin, Base):
     description: Mapped[str | None]
 
     facility_contracts: Mapped[list['FacilityContract']] = relationship(back_populates='product')
-    customer_groups: Mapped[list['CustomerGroup']] = relationship(back_populates='product')
+    customer_groups: Mapped[list['CustomerGroup']] = relationship(
+        back_populates='product', foreign_keys='CustomerGroup.product_id'
+    )
 
 
 class Facility(AuditColumnsMixin, Base):
@@ -442,8 +444,11 @@ class CustomerGroup(AuditColumnsMixin, Base):
     customer_group_id : int
        The unique ID of the customer group. The primary key of the table.
 
+    code : str
+        The unique code of the customer group. Is indexed. Max length of 64 characters.
+
     name : str
-        The unique name of the customer group. Is indexed. Max length of 150 characters.
+        The name of the customer group.
 
     min_fuse_size : int or None
         The minimum fuse size [A] of the customer group.
@@ -475,10 +480,19 @@ class CustomerGroup(AuditColumnsMixin, Base):
         The type of facility that can be associated with the customer group.
         Foreign key to :attr:`FacilityType.facility_type_id`. Is indexed.
 
+    customer_type_id : int or None
+        The type of customer that can be associated with the customer group.
+        Foreign key to :attr:`CustomerType.customer_type_id`.
+
     product_id : int or None
         The product of a facility contract associated with the customer group. Used
         for mapping facilities to a customer group based on the product of a facility
         contract. Is indexed. Foreign key to :attr:`Product.product_id`.
+
+    not_product_id : int or None
+        The product of a facility contract to not associate with the customer group. Used
+        for mapping facilities to a customer group based on a facility contract not having
+        the specified product. Foreign key to :attr:`Product.product_id`.
 
     mapping_strategy_id : int
         The ID of the customer group mapping strategy to apply to map facilities to the customer
@@ -503,6 +517,7 @@ class CustomerGroup(AuditColumnsMixin, Base):
 
     columns__repr__: ClassVar[tuple[str, ...]] = (
         'customer_group_id',
+        'code',
         'name',
         'min_fuse_size',
         'max_fuse_size',
@@ -513,7 +528,9 @@ class CustomerGroup(AuditColumnsMixin, Base):
         'min_bound_included',
         'max_bound_included',
         'facility_type_id',
+        'customer_type_id',
         'product_id',
+        'not_product_id',
         'mapping_strategy_id',
         'description',
         'updated_at',
@@ -525,7 +542,8 @@ class CustomerGroup(AuditColumnsMixin, Base):
     __tablename__ = 'ta_customer_group'
 
     customer_group_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
-    name: Mapped[str] = mapped_column(String(150), unique=True)
+    code: Mapped[str] = mapped_column(String(64), unique=True)
+    name: Mapped[str]
     min_fuse_size: Mapped[int | None]
     max_fuse_size: Mapped[int | None]
     min_subscribed_power: Mapped[float | None]
@@ -535,7 +553,13 @@ class CustomerGroup(AuditColumnsMixin, Base):
     min_bound_included: Mapped[bool] = mapped_column(server_default=true())
     max_bound_included: Mapped[bool] = mapped_column(server_default=true())
     facility_type_id: Mapped[int] = mapped_column(ForeignKey(FacilityType.facility_type_id))
+    customer_type_id: Mapped[int | None] = mapped_column(
+        ForeignKey(CustomerType.customer_type_id, ondelete='SET NULL')
+    )
     product_id: Mapped[int | None] = mapped_column(
+        ForeignKey(Product.product_id, ondelete='SET NULL')
+    )
+    not_product_id: Mapped[int | None] = mapped_column(
         ForeignKey(Product.product_id, ondelete='SET NULL')
     )
     mapping_strategy_id: Mapped[int] = mapped_column(
@@ -550,7 +574,9 @@ class CustomerGroup(AuditColumnsMixin, Base):
         relationship(back_populates='customer_group', passive_deletes=True)
     )
     facility_type: Mapped[FacilityType] = relationship(back_populates='customer_groups')
-    product: Mapped[Product] = relationship(back_populates='customer_groups')
+    product: Mapped[Product] = relationship(
+        back_populates='customer_groups', foreign_keys=product_id
+    )
     mapping_strategy: Mapped[CustomerGroupMappingStrategy] = relationship(
         back_populates='customer_groups'
     )

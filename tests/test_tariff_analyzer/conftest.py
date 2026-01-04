@@ -20,10 +20,12 @@ import elsabio.cli.main
 import elsabio.config.config
 from elsabio.config import BitwardenPasswordlessConfig, ConfigManager, ImportMethod, load_config
 from elsabio.database import URL, SessionFactory
-from elsabio.database.models.tariff_analyzer import Facility, FacilityType
+from elsabio.database.models.tariff_analyzer import Facility, FacilityType, Product
 from elsabio.models.tariff_analyzer import (
+    CustomerGroupDataFrameModel,
     FacilityContractDataFrameModel,
     FacilityContractImportDataFrameModel,
+    FacilityCustomerGroupLinkDataFrameModel,
     FacilityDataFrameModel,
     FacilityImportDataFrameModel,
     ProductDataFrameModel,
@@ -283,6 +285,58 @@ def max_reactive_power_cons_model_to_import(
     return SerieValueImportDataFrameModel(df=df)
 
 
+@pytest.fixture(scope='session')
+def customer_group_model() -> CustomerGroupDataFrameModel:
+    r"""The test dataset of the customer groups.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.CustomerDataFrameModel
+        The DataFrame model of the customer groups.
+    """
+
+    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / 'customer_group.csv'
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    c_mapping_strategy_code = CustomerGroupDataFrameModel.c_mapping_strategy_code
+    dtypes = {
+        col: dtype
+        for col, dtype in CustomerGroupDataFrameModel.dtypes.items()
+        if col != c_mapping_strategy_code
+    }
+
+    df = (
+        duckdb.read_csv(str(file), sep=';')
+        .select(f'* EXCLUDE(description, {c_mapping_strategy_code})')
+        .df(date_as_object=True)
+        .astype(dtypes)
+    )
+
+    return CustomerGroupDataFrameModel(df=df)
+
+
+@pytest.fixture(scope='session')
+def facility_customer_group_link_model() -> FacilityCustomerGroupLinkDataFrameModel:
+    r"""The test dataset of the facility customer group links.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.CustomerDataFrameModel
+        The DataFrame model of the facility customer group links.
+    """
+
+    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / 'facility_customer_group_link.csv'
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    df = (
+        duckdb.read_csv(str(file), sep=';')
+        .df(date_as_object=True)
+        .astype(FacilityCustomerGroupLinkDataFrameModel.dtypes)
+    )
+
+    return FacilityCustomerGroupLinkDataFrameModel(df=df)
+
+
 # =================================================================================================
 # Database
 # =================================================================================================
@@ -334,6 +388,34 @@ def sqlite_db_with_all_facilities(
     with session_factory() as session:
         facilities_model.df.to_sql(
             name=Facility.__tablename__, con=session.get_bind(), if_exists='append', index=False
+        )
+
+    return session_factory
+
+
+@pytest.fixture
+def sqlite_db_with_products_and_facilities(
+    initialized_sqlite_db: tuple[SessionFactory, URL],
+    product_model: ProductDataFrameModel,
+    facilities_model: FacilityDataFrameModel,
+) -> SessionFactory:
+    r"""An ElSabio SQLite database with products and facilities persisted.
+
+    Returns
+    -------
+    session_factory : elsabio.db.SessionFactory
+        The session factory that can produce new database sessions.
+    """
+
+    session_factory, _ = initialized_sqlite_db
+
+    with session_factory() as session:
+        conn = session.get_bind()
+        product_model.df.to_sql(
+            name=Product.__tablename__, con=conn, if_exists='append', index=False
+        )
+        facilities_model.df.to_sql(
+            name=Facility.__tablename__, con=conn, if_exists='append', index=False
         )
 
     return session_factory
