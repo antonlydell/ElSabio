@@ -7,8 +7,9 @@ r"""The core functionality of the CLI."""
 
 # Standard library
 import logging
+from datetime import datetime
 from enum import StrEnum
-from typing import NoReturn
+from typing import Any, NoReturn
 
 # Third party
 import click
@@ -16,6 +17,7 @@ import click
 # Local
 from elsabio.config import ConfigManager
 from elsabio.database import SessionFactory
+from elsabio.datetime import parse_date_range_expression
 from elsabio.exceptions import ElSabioError
 
 logger = logging.getLogger(__name__)
@@ -34,6 +36,23 @@ class Color(StrEnum):
     SUCCESS = 'green'
     WARNING = 'yellow'
     ERROR = 'red'
+
+
+class DateRangeParamType(click.ParamType):
+    r"""The date range parameter."""
+
+    name = 'date-range'
+
+    def convert(
+        self, value: Any, param: click.Parameter | None, ctx: click.Context | None
+    ) -> tuple[datetime, datetime | None]:
+        try:
+            return parse_date_range_expression(value)
+        except ElSabioError as e:
+            self.fail(str(e), param, ctx)
+
+
+DATE_RANGE_PARAM = DateRangeParamType()
 
 
 def exit_program(
