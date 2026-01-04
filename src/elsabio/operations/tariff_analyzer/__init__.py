@@ -6,6 +6,12 @@
 r"""The business logic of the Tariff Analyzer module."""
 
 # Local
+from .customer_group import (
+    create_facility_customer_group_link_upsert_dataframes,
+    map_facilities_to_customer_groups,
+    validate_duplicate_facility_customer_group_links,
+    validate_facility_customer_group_input_data_models,
+)
 from .import_ import (
     create_facility_contract_upsert_dataframes,
     create_facility_upsert_dataframes,
@@ -20,6 +26,11 @@ from .import_ import (
 
 # The Public API
 __all__ = [
+    # customer_group
+    'create_facility_customer_group_link_upsert_dataframes',
+    'map_facilities_to_customer_groups',
+    'validate_duplicate_facility_customer_group_links',
+    'validate_facility_customer_group_input_data_models',
     # import_  # noqa: ERA001
     'create_facility_contract_upsert_dataframes',
     'create_facility_upsert_dataframes',
