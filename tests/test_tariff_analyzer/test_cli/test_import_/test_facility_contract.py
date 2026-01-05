@@ -152,6 +152,44 @@ def facility_contract_import_parquet_file(
 
 
 @pytest.fixture
+def facility_contract_parquet_file_with_unknown_facility(
+    facility_contract_model_to_import: FacilityContractImportDataFrameModel,
+    config_data_import_method_file: tuple[str, ConfigManager],
+) -> tuple[Path, str]:
+    r"""A parquet file with facility contracts where one contract has an unknown EAN code.
+
+    One facility contract does not have a corresponding facility in the
+    facility table. This facility contract cannot be imported.
+
+    Returns
+    -------
+    file : pathlib.Path
+        The full path to the parquet file.
+
+    ean_code : str
+        The unknown EAN code.
+    """
+
+    _, cm = config_data_import_method_file
+    facility_contract_data = cm.tariff_analyzer.data.get(DataSource.FACILITY_CONTRACT)
+
+    assert facility_contract_data is not None, (
+        'Missing configuration "tariff_analyzer.data.facility_contract"!'
+    )
+
+    c_ean = FacilityContractImportDataFrameModel.c_ean
+    file = facility_contract_data.path / 'facility_contracts.parquet'
+
+    df = facility_contract_model_to_import.df.copy()
+    df.loc[3, c_ean] = 1234560000000000039
+    ean_code = str(df.loc[3, c_ean])
+
+    df.to_parquet(path=file)
+
+    return file, ean_code
+
+
+@pytest.fixture
 def facility_contract_parquet_file_missing_required_columns(
     facility_contract_model_to_import: FacilityContractImportDataFrameModel,
     config_data_import_method_file: tuple[str, ConfigManager],
@@ -624,6 +662,46 @@ class TestTariffAnalyzerImportFacilityContractCommand:
 
         for col in required_cols:
             assert col in output, f'Required column "{col}" missing in terminal output!'
+
+        # Clean up - None
+        # ===========================================================
+
+    @pytest.mark.usefixtures(
+        'default_config_file_location_does_not_exist',
+        'config_import_method_file_in_config_file_env_var',
+        'sqlite_db_with_facilities_and_products',
+    )
+    def test_facility_not_in_facility_table(
+        self,
+        facility_contract_parquet_file_with_unknown_facility: tuple[Path, str],
+    ) -> None:
+        r"""Test to import a facility contract that does not have an entry in the facility table."""
+
+        # Setup
+        # ===========================================================
+        _, ean_exp = facility_contract_parquet_file_with_unknown_facility
+
+        message_exp = (
+            'Found facility contracts (1) with unknown EAN codes '
+            f'in column "{FacilityContractImportDataFrameModel.c_ean}"!'
+        )
+
+        runner = CliRunner()
+        args = ['ta', 'import', 'facility-contract']
+
+        # Exercise
+        # ===========================================================
+        result = runner.invoke(cli=main, args=args, catch_exceptions=False)
+
+        # Verify
+        # ===========================================================
+        output = result.output
+        print(output)
+
+        assert result.exit_code == 1, 'Exit code is not 1!'
+        assert message_exp in output, 'Expected output message missing in terminal output!'
+
+        assert ean_exp in output, f'EAN "{ean_exp}" missing in terminal output!'
 
         # Clean up - None
         # ===========================================================

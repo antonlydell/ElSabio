@@ -131,6 +131,92 @@ def get_facility_contract_import_interval(
     return start_date, end_date, OperationResult(ok=True)
 
 
+def _validate_upsert_facility_contracts_to_import(
+    rel: duckdb.DuckDBPyRelation,
+) -> tuple[OperationResult, pd.DataFrame]:
+    r"""Validate the facility contracts to save to the database.
+
+    Parameters
+    ----------
+    rel : duckdb.DuckDBPyRelation
+        The data model with the facility contracts to save to the database.
+
+    Result
+    ------
+    result : elsabio.core.OperationResult
+        The result of the model validation.
+
+    df : pandas.DataFrame
+        A DataFrame containing the rows with invalid data.
+        An empty DataFrame is returned if the data is valid.
+    """
+
+    c_facility_id = FacilityMappingDataFrameModel.c_facility_id
+
+    c_ean = FacilityContractImportDataFrameModel.c_ean
+    c_date_id = FacilityContractImportDataFrameModel.c_date_id
+    c_fuse_size = FacilityContractImportDataFrameModel.c_fuse_size
+    c_subscribed_power = FacilityContractImportDataFrameModel.c_subscribed_power
+    c_connection_power = FacilityContractImportDataFrameModel.c_connection_power
+    c_account_nr = FacilityContractImportDataFrameModel.c_account_nr
+    c_customer_type_code_import = FacilityContractImportDataFrameModel.c_customer_type_code
+    c_product_ext_id_import = FacilityContractImportDataFrameModel.c_ext_product_id
+
+    c_customer_type_id = CustomerTypeMappingDataFrameModel.c_customer_type_id
+
+    c_product_id = ProductMappingDataFrameModel.c_product_id
+
+    order_by = f'{c_ean} ASC, {c_date_id} ASC'
+
+    cols_invalid_customer_type = (
+        f'{c_facility_id}, {c_ean}, {c_date_id}, '
+        f'{c_customer_type_id}, {c_customer_type_code_import}'
+    )
+    df = (
+        rel.filter(f'{c_customer_type_id} IS NULL')
+        .select(cols_invalid_customer_type)
+        .order(order_by)
+        .to_df(date_as_object=True)
+        .set_index(c_facility_id)
+    )
+
+    if (nr_invalid := df.shape[0]) > 0:
+        result = OperationResult(
+            ok=False,
+            short_msg=(
+                f'Found facility contracts ({nr_invalid}) with '
+                f'invalid values for column "{c_customer_type_code_import}"!'
+            ),
+        )
+
+        return result, df
+
+    cols_unknown_ean = (
+        f'{c_facility_id}, {c_ean}, {c_date_id}, {c_fuse_size}, {c_subscribed_power}, '
+        f'{c_connection_power}, {c_account_nr}, {c_customer_type_code_import}, '
+        f'{c_customer_type_id}, {c_product_ext_id_import}, {c_product_id}'
+    )
+    df = (
+        rel.filter(f'{c_facility_id} IS NULL')
+        .select(cols_unknown_ean)
+        .order(order_by)
+        .to_df(date_as_object=True)
+        .set_index(c_ean)
+    )
+
+    if (nr_unknown := df.shape[0]) > 0:
+        result = OperationResult(
+            ok=False,
+            short_msg=(
+                f'Found facility contracts ({nr_unknown}) with '
+                f'unknown EAN codes in column "{c_ean}"!'
+            ),
+        )
+        return result, df
+
+    return OperationResult(ok=True), df
+
+
 def create_facility_contract_upsert_dataframes(
     import_model: duckdb.DuckDBPyRelation,
     facility_contract_model: FacilityContractMappingDataFrameModel,
@@ -147,9 +233,13 @@ def create_facility_contract_upsert_dataframes(
         The data model with the facility contracts to import. Should adhere to the structure
         of :class:`elsabio.models.tariff_analyzer.FacilityContractImportDataFrameModel`.
 
+    facility_contract_model : elsabio.models.tariff_analyzer.FacilityContractMappingDataFrameModel
+        The model with the existing facility contracts. Used to determine the existing facility
+        contracts from `import_model` to update and the new ones to import.
+
     facility_model : elsabio.models.tariff_analyzer.FacilityMappingDataFrameModel
         The model with the mapping of `facility_id` to `ean`. Used to determine the
-        existing facilities from `import_model` to update and the new ones to import.
+        validate that all facilities in `import_model` exist in the database.
 
     customer_type_model: elsabio.models.tariff_analyzer.CustomerTypeMappingDataFrameModel
         The model with the mapping of `customer_type_id` to `customer_type_code`. Used to
@@ -171,7 +261,6 @@ def create_facility_contract_upsert_dataframes(
         The result of the creation of the upsert DataFrames.
     """
 
-    # Columns
     c_facility_id = FacilityMappingDataFrameModel.c_facility_id
 
     c_ean = FacilityContractImportDataFrameModel.c_ean
@@ -267,37 +356,19 @@ ORDER BY
     conn.register(view_name=p_model_name, python_object=df_product)
     rel = conn.sql(query=mapping_query)
 
-    select_columns = (
+    result, df_invalid = _validate_upsert_facility_contracts_to_import(rel=rel)
+
+    if not result.ok:
+        df = pd.DataFrame()
+        return UpsertDataFrames(insert=df, update=df, invalid=df_invalid), result
+
+    select_cols = (
         f'* EXCLUDE ({c_ean}, '
         f'{c_customer_type_code_import}, {c_product_ext_id_import}, {c_to_insert})'
     )
-    df_insert = (
-        rel.filter(f'{c_to_insert} = true').select(select_columns).to_df(date_as_object=True)
-    )
-    df_update = (
-        rel.filter(f'{c_to_insert} = false').select(select_columns).to_df(date_as_object=True)
-    )
-    df_invalid = (
-        rel.filter(f'{c_customer_type_id} IS NULL')
-        .select(
-            f'{c_facility_id}, {c_ean}, {c_date_id}, '
-            f'{c_customer_type_id}, {c_customer_type_code_import}'
-        )
-        .order(f'{c_ean} ASC, {c_date_id} ASC')
-        .to_df(date_as_object=True)
-        .set_index(c_facility_id)
-    )
 
-    if (nr_invalid := df_invalid.shape[0]) > 0:
-        result = OperationResult(
-            ok=False,
-            short_msg=(
-                f'Found facility contracts ({nr_invalid}) with '
-                f'invalid values for column "{c_customer_type_code_import}"!'
-            ),
-        )
-    else:
-        result = OperationResult(ok=True)
+    df_insert = rel.filter(f'{c_to_insert} = true').select(select_cols).to_df(date_as_object=True)
+    df_update = rel.filter(f'{c_to_insert} = false').select(select_cols).to_df(date_as_object=True)
 
     dfs = UpsertDataFrames(insert=df_insert, update=df_update, invalid=df_invalid)
 
