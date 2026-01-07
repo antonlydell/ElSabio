@@ -1060,7 +1060,7 @@ class TariffComponentType(AuditColumnsMixin, Base):
     calc_strategy_id: Mapped[int] = mapped_column(ForeignKey(CalcStrategy.calc_strategy_id))
     serie_type_id: Mapped[int | None] = mapped_column(ForeignKey(SerieType.serie_type_id))
     is_revenue: Mapped[bool] = mapped_column(
-        server_default=text('1'),
+        server_default=true(),
         comment=(
             'True if the tariff component represents a revenue '
             'for the grid company and False for a cost.'
