@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.4.0] - 2026-01-08
+
+Map facilities to customer groups in the Tariff Analyzer module!
+
+The new CLI command `elsabio ta cg map-facilities` allows you to map facilities to customer groups
+based on the facility contract information. The metadata of the customer groups are used to filter
+the facility contracts to find the facilities to include in the customer groups. A facility can only
+belong to one customer group to avoid accidental double counting of facilities when performing tariff
+calculations. There are 4 mapping strategies available that determine which customer group metadata is
+used to filter facility contracts: *fuse_size*, *subscribed_power*, *connection_power* and *product*.
+
+
+### Added
+
+- `elsabio ta cg map-facilities` : Map facilities to customer groups.
+
+
 ## [0.3.0] - 2025-12-27
 
 Import data to the Tariff Analyzer module!
@@ -55,7 +72,8 @@ A first release and declaration of the project.
 - Registration on [PyPI](https://pypi.org/project/ElSabio/0.1.0/).
 
 
-[Unreleased]: https://github.com/antonlydell/ElSabio/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/antonlydell/ElSabio/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/antonlydell/ElSabio/releases/tag/v0.4.0
 [0.3.0]: https://github.com/antonlydell/ElSabio/releases/tag/v0.3.0
 [0.2.0]: https://github.com/antonlydell/ElSabio/releases/tag/v0.2.0
 [0.1.0]: https://github.com/antonlydell/ElSabio/releases/tag/v0.1.0
