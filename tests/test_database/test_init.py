@@ -59,6 +59,7 @@ class TestInit:
                 ta_models.CustomerGroupMappingStrategy
             ),
             'CalcStrategy': select(func.count()).select_from(ta_models.CalcStrategy),
+            'PeriodizeStrategy': select(func.count()).select_from(ta_models.PeriodizeStrategy),
         }
 
         # Exercise

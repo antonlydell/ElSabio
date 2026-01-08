@@ -12,9 +12,16 @@ from elsabio.models.tariff_analyzer import (
     CustomerGroupMappingStrategyEnum,
     CustomerTypeEnum,
     FacilityTypeEnum,
+    PeriodizeStrategyEnum,
 )
 
-from .models import CalcStrategy, CustomerGroupMappingStrategy, CustomerType, FacilityType
+from .models import (
+    CalcStrategy,
+    CustomerGroupMappingStrategy,
+    CustomerType,
+    FacilityType,
+    PeriodizeStrategy,
+)
 
 # FacilityType
 default_facility_types = (
@@ -73,47 +80,82 @@ default_customer_group_mapping_strategies = (
 # CalcStrategy
 default_calc_strategies = (
     {
+        'code': CalcStrategyEnum.FIXED,
+        'name': 'Fixed',
+        'description': 'A fixed price tariff component type without an associated meter data.',
+    },
+    {
         'code': CalcStrategyEnum.PER_UNIT,
         'name': 'Per Unit',
-        'description': 'A cost per unit energy or power. E.g. SEK/kWh or SEK/kW',
+        'description': (
+            'A tariff component that is calculated per unit of a meter data serie '
+            'e.g. energy or power.'
+        ),
     },
     {
-        'code': CalcStrategyEnum.PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH,
+        'code': CalcStrategyEnum.SUBSCRIBED_POWER,
+        'name': 'Subscribed Power',
+        'description': (
+            'A tariff component type that is calculated as a price multiplied by the '
+            'subscribed power.'
+        ),
+    },
+    {
+        'code': CalcStrategyEnum.CONNECTION_POWER,
+        'name': 'Connection Power',
+        'description': (
+            'A tariff component type that is calculated as a price multiplied by the '
+            'connection power.'
+        ),
+    },
+    {
+        'code': CalcStrategyEnum.OVERSHOOT_SUBSCRIBED_POWER,
+        'name': 'Overshoot Subscribed Power',
+        'description': (
+            'A tariff component type where the configured meter data serie is compared '
+            'to see if it exceeds the subscribed power.'
+        ),
+    },
+    {
+        'code': CalcStrategyEnum.OVERSHOOT_CONNECTION_POWER,
+        'name': 'Overshoot Connection Power',
+        'description': (
+            'A tariff component type where the configured meter data serie is compared '
+            'to see if it exceeds the connection power.'
+        ),
+    },
+    {
+        'code': CalcStrategyEnum.OVERSHOOT_COMPARISON_METER_DATA_SERIE,
+        'name': 'Overshoot Compared to a Meter Data Serie',
+        'description': (
+            'A tariff component type where the configured meter data serie is compared '
+            'to see if it exceeds its comparison meter data serie.'
+        ),
+    },
+)
+
+# PeriodizeStrategy
+default_periodize_strategies = (
+    {
+        'code': PeriodizeStrategyEnum.PER_MONTH,
+        'name': 'Per Month',
+        'description': 'A tariff component type with a price defined per month.',
+    },
+    {
+        'code': PeriodizeStrategyEnum.PER_YEAR_DIVIDE_BY_12,
+        'name': 'Per Year Divide By 12',
+        'description': (
+            'A tariff component type with a price defined per year where the resulting '
+            'revenue/cost should be periodized per month by dividing by 12.'
+        ),
+    },
+    {
+        'code': PeriodizeStrategyEnum.PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH,
         'name': 'Per Year Periodize Over Month Length',
         'description': (
-            'A cost per year that is periodizsed per month based on '
-            'the length of the month in proportion to the year. E.g. SEK/year'
-        ),
-    },
-    {
-        'code': CalcStrategyEnum.PER_UNIT_PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH,
-        'name': 'Per Unit Per Year Periodize Over Month Length',
-        'description': (
-            'A cost per unit energy or power per year that is periodizsed per month based on '
-            'the length of the month in proportion to the year. E.g. SEK/kW/year'
-        ),
-    },
-    {
-        'code': CalcStrategyEnum.ACTIVE_POWER_OVERSHOOT_SUBSCRIBED_POWER,
-        'name': 'Active Power Overshoot Subscribed Power',
-        'description': (
-            'A cost for active power exceeding the subscribed power. E.g. SEK/kW/month'
-        ),
-    },
-    {
-        'code': CalcStrategyEnum.REACTIVE_POWER_CONS_OVERSHOOT_ACTIVE_POWER_CONS,
-        'name': 'Reactive Power Consumption Overshoot Active Power Consumption',
-        'description': (
-            'A cost for consuming reactive power exceeding the allowed limit '
-            'in relation to the active power consumption. E.g. SEK/kVAr/year'
-        ),
-    },
-    {
-        'code': CalcStrategyEnum.REACTIVE_POWER_PROD_OVERSHOOT_ACTIVE_POWER_CONS,
-        'name': 'Reactive Power Production Overshoot Active Power Consumption',
-        'description': (
-            'A cost for producing reactive power exceeding the allowed limit '
-            'in relation to the active power consumption. E.g. SEK/kVAr/year'
+            'A tariff component type with a price defined per year where the resulting '
+            'revenue/cost should be periodized per month based on based on the length '
+            'of the month in proportion to the year.'
         ),
     },
 )
@@ -134,3 +176,4 @@ def add_default_tariff_analyzer_models_to_session(session: Session) -> None:
         CustomerGroupMappingStrategy(**item) for item in default_customer_group_mapping_strategies
     )
     session.add_all(CalcStrategy(**item) for item in default_calc_strategies)
+    session.add_all(PeriodizeStrategy(**item) for item in default_periodize_strategies)

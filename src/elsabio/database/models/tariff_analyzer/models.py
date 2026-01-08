@@ -993,6 +993,63 @@ class CalcStrategy(AuditColumnsMixin, Base):
     )
 
 
+class PeriodizeStrategy(AuditColumnsMixin, Base):
+    r"""The strategy for how a price of tariff component should be periodized.
+
+    Periodization means how to periodize a calculated revenue/cost into a
+    monthly resolution.
+
+    Parameters
+    ----------
+    periodize_strategy_id : int
+        The unique ID of the periodization strategy. The primary key of the table.
+
+    code : str
+        The unique code of the periodization strategy. Is indexed. Max length of 64 characters.
+
+    name : str or None
+        A descriptive name of the periodization strategy.
+
+    description : str or None
+        A description of the periodization strategy.
+
+    updated_at : datetime.datetime or None
+        The timestamp at which the periodization strategy was last updated (UTC).
+
+    updated_by : uuid.UUID or None
+        The ID of the user that last updated the periodization strategy.
+
+    created_at : datetime.datetime
+        The timestamp at which the periodization strategy was created (UTC).
+        Defaults to current timestamp.
+
+    created_by : uuid.UUID or None
+        The ID of the user that created the periodization strategy.
+    """
+
+    columns__repr__: ClassVar[tuple[str, ...]] = (
+        'periodize_strategy_id',
+        'code',
+        'name',
+        'description',
+        'updated_at',
+        'updated_by',
+        'created_at',
+        'created_by',
+    )
+
+    __tablename__ = 'ta_periodization_strategy'
+
+    periodize_strategy_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
+    code: Mapped[str] = mapped_column(String(64), unique=True)
+    name: Mapped[str | None]
+    description: Mapped[str | None]
+
+    tariff_component_types: Mapped[list['TariffComponentType']] = relationship(
+        back_populates='periodize_strategy'
+    )
+
+
 class TariffComponentType(AuditColumnsMixin, Base):
     r"""The type of a tariff component.
 
@@ -1005,16 +1062,26 @@ class TariffComponentType(AuditColumnsMixin, Base):
         The unique name of the tariff component type. Is indexed. Max length of 150 characters.
 
     unit_id : int
-        The unit of the tariff component type. Foreign key to :attr:`Unit.unit_id`.
+        The unit of the tariff component type. Foreign key to :attr:`Unit.unit_id`. Is indexed.
 
     calc_strategy_id : int
         The calculation strategy to apply when calculating the revenue/cost
         for tariff components associated with the tariff component type.
-        Foreign key to :attr:`CalcStrategy.calc_strategy_id`.
+        Foreign key to :attr:`CalcStrategy.calc_strategy_id`. Is indexed.
+
+    periodize_strategy_id : int
+        How the calculated revenue/cost for tariff components associated with the tariff component type
+        should be periodized. E.g. "per month" or "per year periodize of month length".
+        Foreign key to :attr:`PeriodizationStrategy.serie_type_id`. Is indexed.
 
     serie_type_id : int or None
         The ID of the type of meter data serie associated with the tariff component calculations.
-        Foreign key to :attr:`SerieType.serie_type_id`.
+        Foreign key to :attr:`SerieType.serie_type_id`. Is indexed.
+
+    comparison_serie_type_id : int or None
+        The ID of the meter data serie to which `serie_type_id` is compared against in the tariff
+        component calculations. E.g. reactive power in comparison to max active power.
+        Foreign key to :attr:`SerieType.serie_type_id`. Is indexed.
 
     is_revenue : bool, default True
         True if the tariff component type represents a revenue for the grid company and False
@@ -1043,7 +1110,9 @@ class TariffComponentType(AuditColumnsMixin, Base):
         'name',
         'unit_id',
         'calc_strategy_id',
+        'periodize_strategy_id',
         'serie_type_id',
+        'comparison_serie_type_id',
         'is_revenue',
         'description',
         'updated_at',
@@ -1058,7 +1127,13 @@ class TariffComponentType(AuditColumnsMixin, Base):
     name: Mapped[str] = mapped_column(String(150), unique=True)
     unit_id: Mapped[int] = mapped_column(ForeignKey(Unit.unit_id))
     calc_strategy_id: Mapped[int] = mapped_column(ForeignKey(CalcStrategy.calc_strategy_id))
+    periodize_strategy_id: Mapped[int] = mapped_column(
+        ForeignKey(PeriodizeStrategy.periodize_strategy_id)
+    )
     serie_type_id: Mapped[int | None] = mapped_column(ForeignKey(SerieType.serie_type_id))
+    comparison_serie_type_id: Mapped[int | None] = mapped_column(
+        ForeignKey(SerieType.serie_type_id)
+    )
     is_revenue: Mapped[bool] = mapped_column(
         server_default=true(),
         comment=(
@@ -1070,7 +1145,11 @@ class TariffComponentType(AuditColumnsMixin, Base):
 
     unit: Mapped[Unit] = relationship()
     calc_strategy: Mapped[CalcStrategy] = relationship(back_populates='tariff_component_types')
-    serie_type: Mapped[SerieType] = relationship()
+    periodize_strategy: Mapped[PeriodizeStrategy] = relationship(
+        back_populates='tariff_component_types'
+    )
+    serie_type: Mapped[SerieType] = relationship(foreign_keys=serie_type_id)
+    comparison_serie_type: Mapped[SerieType] = relationship(foreign_keys=comparison_serie_type_id)
     tariff_components: Mapped[list['TariffComponent']] = relationship(
         back_populates='tariff_component_type'
     )
@@ -1085,6 +1164,13 @@ class TariffComponentType(AuditColumnsMixin, Base):
         viewonly=True,
         collection_class=set,
     )
+
+
+Index('tct_unit_id_ix', TariffComponentType.unit_id)
+Index('tct_calc_strategy_id_ix', TariffComponentType.calc_strategy_id)
+Index('tct_periodize_strategy_id_ix', TariffComponentType.periodize_strategy_id)
+Index('tct_serie_type_id_ix', TariffComponentType.serie_type_id)
+Index('tct_comparison_serie_type_id_ix', TariffComponentType.comparison_serie_type_id)
 
 
 class TariffTariffComponentTypeLink(AuditColumnsMixin, Base):
