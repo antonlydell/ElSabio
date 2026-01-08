@@ -70,43 +70,71 @@ class CustomerGroupMappingStrategyEnum(StrEnum):
 
 
 class CalcStrategyEnum(StrEnum):
-    r"""The available strategies for the tariff calculations.
+    r"""The available calculation strategies for tariff component types.
 
     Members
     -------
+    FIXED
+        A fixed price tariff component type without an associated meter data serie.
+
     PER_UNIT
-        A cost per unit energy or power. E.g. SEK/kWh or SEK/kW
+        A tariff component type that is calculated per unit of a meter data serie
+        e.g. energy or power.
 
-    PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH
-        A cost per year that is periodizsed per month based on the
-        length of the month in proportion to the year. E.g. SEK/year
+    SUBSCRIBED_POWER
+        A tariff component type that is calculated as a price multiplied by the
+        subscribed power.
 
-    PER_UNIT_PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH
-        A cost per unit energy or power per year that is periodizsed per month based on
-        the length of the month in proportion to the year. E.g. SEK/kW/year
+    CONNECTION_POWER
+        A tariff component type that is calculated as a price multiplied by the
+        connection power.
 
-    ACTIVE_POWER_OVERSHOOT_SUBSCRIBED_POWER
-        A cost for active power exceeding the subscribed power. E.g. SEK/kW/month
+    OVERSHOOT_SUBSCRIBED_POWER
+        A tariff component type where the configured meter data serie is compared
+        to see if it exceeds the subscribed power.
 
-    REACTIVE_POWER_CONS_OVERSHOOT_ACTIVE_POWER_CONS
-        A cost for consuming reactive power exceeding the allowed limit
-        in relation to the active power consumption. E.g. SEK/kVAr/year
+    OVERSHOOT_CONNECTION_POWER
+        A tariff component type where the configured meter data serie is compared
+        to see if it exceeds the connection power.
 
-    REACTIVE_POWER_PROD_OVERSHOOT_ACTIVE_POWER_CONS
-        A cost for producing reactive power exceeding the allowed limit
-        in relation to the active power consumption. E.g. SEK/kVAr/year
+    OVERSHOOT_COMPARISON_METER_DATA_SERIE
+        A tariff component type where the configured meter data serie is compared
+        to see if it exceeds its comparison meter data serie.
     """
 
+    FIXED = 'fixed'
     PER_UNIT = 'per_unit'
+    SUBSCRIBED_POWER = 'subscribed_power'
+    CONNECTION_POWER = 'connection_power'
+    OVERSHOOT_SUBSCRIBED_POWER = 'overshoot_subscribed_power'
+    OVERSHOOT_CONNECTION_POWER = 'overshoot_connection_power'
+    OVERSHOOT_COMPARISON_METER_DATA_SERIE = 'overshoot_comparison_meter_data_serie'
+
+
+class PeriodizeStrategyEnum(StrEnum):
+    r"""The available periodization strategies for tariff component types.
+
+    Periodization means how to periodize a calculated revenue/cost into a
+    monthly resolution.
+
+    Members
+    -------
+    PER_MONTH
+        A tariff component type with a price defined per month.
+
+    PER_YEAR_DIVIDE_BY_12
+        A tariff component type with a price defined per year where the resulting
+        revenue/cost should be periodized per month by dividing by 12.
+
+    PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH
+        A tariff component type with a price defined per year where the resulting
+        revenue/cost should be periodized per month based on the length
+        of the month in proportion to the year.
+    """
+
+    PER_MONTH = 'per_month'
+    PER_YEAR_DIVIDE_BY_12 = 'per_year_divide_by_12'
     PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH = 'per_year_periodize_over_month_length'
-    PER_UNIT_PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH = 'per_unit_per_year_periodize_over_month_length'
-    ACTIVE_POWER_OVERSHOOT_SUBSCRIBED_POWER = 'active_power_overshoot_subscribed_power'
-    REACTIVE_POWER_CONS_OVERSHOOT_ACTIVE_POWER_CONS = (
-        'reactive_power_cons_overshoot_active_power_cons'
-    )
-    REACTIVE_POWER_PROD_OVERSHOOT_ACTIVE_POWER_CONS = (
-        'reactive_power_prod_overshoot_active_power_cons'
-    )
 
 
 class FacilityTypeMappingDataFrameModel(BaseDataFrameModel):
