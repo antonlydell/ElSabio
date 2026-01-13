@@ -1259,13 +1259,18 @@ class TariffComponent(AuditColumnsMixin, Base):
     authority_fee_outside_validity : decimal.Decimal, default 0
         The part of the `price` outside of the validity that represents the fee to the authorities.
 
-    validity_start : datetime or None
-        The start date the tariff component is valid from (inclusive)
-        in the configured business timezone of the app.
+    overshoot_limit : decimal.Decimal, default 1.0
+        The allowed limit of the comparison meter data serie, subscribed power or connection
+        power that overshoot components are calculated against. The default of 1.0 means
+        that an overshoot occurs when the meter data exceeds 100 % of the comparison value.
 
-    validity_end : datetime or None
-        The end date the tariff component is valid until (exclusive)
-        in the configured business timezone of the app.
+    validity_start : int, default 1
+        The start month the tariff component is valid from (inclusive).
+
+    validity_end : int, default 12
+        The end month the tariff component is valid until (inclusive).
+        `validity_start` > `validity_end` is valid when specifying e.g.
+        the range November - March (11 - 3).
 
     updated_at : datetime.datetime or None
         The timestamp at which the tariff component was last updated (UTC).
@@ -1289,6 +1294,7 @@ class TariffComponent(AuditColumnsMixin, Base):
         'authority_fee',
         'price_outside_validity',
         'authority_fee_outside_validity',
+        'overshoot_limit',
         'validity_start',
         'validity_end',
         'updated_at',
@@ -1298,6 +1304,11 @@ class TariffComponent(AuditColumnsMixin, Base):
     )
 
     __tablename__ = 'ta_tariff_component'
+    __table_args__ = (
+        CheckConstraint('validity_start BETWEEN 1 AND 12', name='tc_validity_start_between_1_12'),
+        CheckConstraint('validity_end BETWEEN 1 AND 12', name='tc_validity_end_between_1_12'),
+        CheckConstraint('overshoot_limit > 0', name='tc_overshoot_limit_gt_0'),
+    )
 
     tariff_component_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     tariff_component_type_id: Mapped[int] = mapped_column(
@@ -1312,18 +1323,17 @@ class TariffComponent(AuditColumnsMixin, Base):
     authority_fee_outside_validity: Mapped[Decimal] = mapped_column(
         MoneyPrice, server_default=text('0')
     )
-    validity_start: Mapped[date | None] = mapped_column(
-        Date,
-        comment=(
-            'The start date the tariff component is valid from (inclusive) '
-            'in the configured business timezone of the app.'
-        ),
+    overshoot_limit: Mapped[Decimal] = mapped_column(Ratio, server_default=text('1'))
+    validity_start: Mapped[int] = mapped_column(
+        server_default=text('1'),
+        comment=('The start month the tariff component is valid from (inclusive).'),
     )
-    validity_end: Mapped[date | None] = mapped_column(
-        Date,
+    validity_end: Mapped[int] = mapped_column(
+        server_default=text('12'),
         comment=(
-            'The end date the tariff component is valid until (exclusive) '
-            'in the configured business timezone of the app.'
+            'The end month the tariff component is valid until (inclusive). '
+            'validity_start > validity_end is valid when specifying e.g. '
+            'the range November - March (11 - 3).'
         ),
     )
 
