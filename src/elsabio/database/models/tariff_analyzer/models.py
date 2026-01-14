@@ -850,16 +850,6 @@ class TariffCostGroup(AuditColumnsMixin, Base):
         The name of the tariff cost group. Must be unique within each `tariff_id`.
         Max length of 150 characters.
 
-    allowed_reactive_over_active_power_cons : decimal.Decimal, default 1.0
-        The ratio of allowed reactive power consumption in relation to subscribed active
-        power consumption. The default of 1.0 means that you may consume as much reactive
-        power as you consume active power.
-
-    allowed_reactive_over_active_power_prod : decimal.Decimal, default 1.0
-        The ratio of allowed reactive power production in relation to the subscribed active
-        power consumption. The default of 1.0 means that you may produce as much reactive power
-        as you consume active power.
-
     description : str or None
         A description of the tariff cost group.
 
@@ -881,8 +871,6 @@ class TariffCostGroup(AuditColumnsMixin, Base):
         'tariff_cost_group_id',
         'tariff_id',
         'name',
-        'allowed_reactive_over_active_power_cons',
-        'allowed_reactive_over_active_power_prod',
         'description',
         'updated_at',
         'updated_by',
@@ -895,12 +883,6 @@ class TariffCostGroup(AuditColumnsMixin, Base):
     tariff_cost_group_id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     tariff_id: Mapped[int] = mapped_column(ForeignKey(Tariff.tariff_id, ondelete='CASCADE'))
     name: Mapped[str] = mapped_column(String(150))
-    allowed_reactive_over_active_power_cons: Mapped[Decimal] = mapped_column(
-        Ratio, server_default=text('1.0')
-    )
-    allowed_reactive_over_active_power_prod: Mapped[Decimal] = mapped_column(
-        Ratio, server_default=text('1.0')
-    )
     description: Mapped[str | None]
 
     tariff: Mapped[Tariff] = relationship(back_populates='tariff_cost_groups')
