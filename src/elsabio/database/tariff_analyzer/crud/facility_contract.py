@@ -6,7 +6,6 @@
 r"""Functions for working with the `FacilityContract` model of Tariff Analyzer."""
 
 # Standard library
-from collections.abc import Sequence
 from datetime import date
 
 # Third party
@@ -30,7 +29,9 @@ from elsabio.models.tariff_analyzer import (
 
 
 def load_facility_contract_mapping_model(
-    session: Session, date_ids: Sequence[date]
+    session: Session,
+    start_date: date,
+    end_date: date,
 ) -> tuple[FacilityContractMappingDataFrameModel, OperationResult]:
     r"""Load the facility contract mapping model for locating existing facility contracts.
 
@@ -39,8 +40,11 @@ def load_facility_contract_mapping_model(
     session : elsabio.db.Session
         An active database session.
 
-    date_ids : Sequence[datetime.date]
-        The months in which to load facility contracts.
+    start_date : datetime.date
+        The start date of the interval in which to load facility contracts (inclusive).
+
+    end_date : datetime.date
+        The end date of the interval in which to load facility contracts (inclusive).
 
     Returns
     -------
@@ -56,7 +60,7 @@ def load_facility_contract_mapping_model(
             FacilityContract.facility_id.label(FacilityContractMappingDataFrameModel.c_facility_id),
             FacilityContract.date_id.label(FacilityContractMappingDataFrameModel.c_date_id),
         )
-        .where(FacilityContract.date_id.in_(date_ids))
+        .where(FacilityContract.date_id.between(start_date, end_date))
         .order_by(FacilityContract.date_id.asc(), FacilityContract.facility_id.asc())
     )
 

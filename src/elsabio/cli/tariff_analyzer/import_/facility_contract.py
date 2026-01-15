@@ -167,7 +167,7 @@ def facility_contract(ctx: click.Context) -> None:  # noqa: C901
                 exit_program(error=True, ctx=ctx, message=result.short_msg)
 
             facility_contract_model, result = load_facility_contract_mapping_model(
-                session=session, date_ids=(start_date, end_date)
+                session=session, start_date=start_date, end_date=end_date
             )
             if not result.ok:
                 exit_program(error=True, ctx=ctx, message=result.short_msg)
