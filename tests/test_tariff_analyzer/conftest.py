@@ -251,7 +251,7 @@ def max_reactive_power_cons_model() -> SerieValueDataFrameModel:
         The DataFrame model of the max reactive power consumption meter data.
     """
 
-    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / '2025-11_2025-12_max_reactive_power_cons.csv'
+    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / '2025-10_2025-11_max_reactive_power_cons.csv'
     assert file.exists(), f'File "{file}" does not exist!'
 
     df = (
