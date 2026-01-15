@@ -7,7 +7,6 @@ r"""Unit tests for the module `cli.tariff_analyzer.customer_group.map_facilities
 
 # Standard library
 from datetime import date
-from typing import cast
 from unittest.mock import Mock
 
 # Third party
@@ -204,15 +203,16 @@ def sqlite_db_with_unmapped_facility_contract(
 
     c_fuse_size = FacilityContractDataFrameModel.c_fuse_size
     c_facility_id = FacilityContractDataFrameModel.c_facility_id
+    c_date_id = FacilityContractDataFrameModel.c_date_id
 
-    df_fc = facility_contract_model.df.copy()
-    df_fc.loc[1, c_fuse_size] = 15
+    df_fc = facility_contract_model.df.copy().set_index([c_facility_id, c_date_id])
 
-    facility_id = cast(int, (df_fc.loc[1, c_facility_id]))
+    facility_id = 2  # facility contract 16 A
+    df_fc.loc[(facility_id, date(2025, 11, 1)), c_fuse_size] = 15
 
     with session_factory() as session:
         conn = session.get_bind()
-        df_fc.to_sql(name=FacilityContract.__tablename__, con=conn, if_exists='append', index=False)
+        df_fc.to_sql(name=FacilityContract.__tablename__, con=conn, if_exists='append', index=True)
         customer_group_model.df.to_sql(
             name=CustomerGroup.__tablename__, con=conn, if_exists='append', index=False
         )
@@ -246,19 +246,19 @@ def sqlite_db_with_required_product_id_missing_for_product_strategy(
 
     c_product_id = CustomerGroupDataFrameModel.c_product_id
     c_customer_group_id = CustomerGroupDataFrameModel.c_customer_group_id
-    c_facility_id = FacilityContractDataFrameModel.c_facility_id
 
-    df_cg = customer_group_model.df.copy()
-    df_cg.loc[0, c_product_id] = pd.NA
-    customer_group_id = cast(int, df_cg.loc[0, c_customer_group_id])
+    df_cg = customer_group_model.df.copy().set_index(c_customer_group_id)
+
+    customer_group_id = 1  # apartment
+    df_cg.loc[customer_group_id, c_product_id] = pd.NA
 
     df_fc = facility_contract_model.df
-    facility_id = cast(int, df_fc.loc[0, c_facility_id])
+    facility_id = 1  # facility contract 16 A Apartment
 
     with session_factory() as session:
         conn = session.get_bind()
         df_fc.to_sql(name=FacilityContract.__tablename__, con=conn, if_exists='append', index=False)
-        df_cg.to_sql(name=CustomerGroup.__tablename__, con=conn, if_exists='append', index=False)
+        df_cg.to_sql(name=CustomerGroup.__tablename__, con=conn, if_exists='append', index=True)
 
     return customer_group_id, facility_id, session_factory
 
@@ -283,13 +283,15 @@ def sqlite_db_with_facility_mapped_to_2_customer_groups(
     session_factory = sqlite_db_with_products_and_facilities
 
     c_not_product_id = CustomerGroupDataFrameModel.c_not_product_id
-    c_facility_id = FacilityContractDataFrameModel.c_facility_id
+    c_customer_group_id = CustomerGroupDataFrameModel.c_customer_group_id
 
-    df_cg = customer_group_model.df.copy()
-    df_cg.loc[1, c_not_product_id] = pd.NA
+    df_cg = customer_group_model.df.copy().set_index(c_customer_group_id)
+
+    customer_group_id = 2  # 16_A
+    df_cg.loc[customer_group_id, c_not_product_id] = pd.NA
 
     df_fc = facility_contract_model.df
-    facility_id = cast(int, df_fc.loc[0, c_facility_id])
+    facility_id = 1  # facility contract 16 A Apartment
 
     with session_factory() as session:
         conn = session.get_bind()

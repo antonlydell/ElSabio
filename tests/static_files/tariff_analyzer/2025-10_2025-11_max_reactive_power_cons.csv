@@ -1,0 +1,5 @@
+serie_type_code;facility_id;ean;date_id;serie_value;status_id
+max_reactive_power_cons;6;123456000000000006;2025-10-01;112.1;ok
+max_reactive_power_cons;7;123456000000000007;2025-10-01;74.12;
+max_reactive_power_cons;6;123456000000000006;2025-11-01;266.73;estimated
+max_reactive_power_cons;7;123456000000000007;2025-11-01;65.74;
