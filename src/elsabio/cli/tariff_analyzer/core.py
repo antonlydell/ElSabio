@@ -11,6 +11,7 @@ import click
 # Local
 from .customer_group.customer_group import customer_group
 from .import_.import_ import import_
+from .tariff.tariff import tariff
 
 
 @click.group(name='ta')
@@ -18,5 +19,5 @@ def tariff_analyzer() -> None:
     r"""Manage the Tariff Analyzer module"""
 
 
-for cmd in (import_, customer_group):
+for cmd in (import_, customer_group, tariff):
     tariff_analyzer.add_command(cmd)
