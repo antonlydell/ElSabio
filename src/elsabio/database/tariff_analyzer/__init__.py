@@ -23,6 +23,8 @@ from .crud import (
     load_facility_mapping_model,
     load_facility_type_mapping_model,
     load_product_mapping_model,
+    load_tariff_calculation_model,
+    load_tariff_ids,
 )
 
 # The Public API
@@ -44,4 +46,6 @@ __all__ = [
     'load_facility_mapping_model',
     'load_facility_type_mapping_model',
     'load_product_mapping_model',
+    'load_tariff_calculation_model',
+    'load_tariff_ids',
 ]
