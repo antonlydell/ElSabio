@@ -1,0 +1,13 @@
+tariff_component_type_id;name;unit_id;unit_code;calc_strategy_id;calc_strategy_code;periodize_strategy_id;periodize_strategy_code;serie_type_id;serie_type_code;comparison_serie_type_id;comparison_serie_type_code;is_revenue;description
+1;Fixed Price per Month;26;per_month;1;fixed;1;per_month;;;;;1;Revenue from a fixed monthly price.
+2;Fixed Price per Year Divide by 12;27;per_year;1;fixed;2;per_year_divide_by_12;;;;;1;Revenue from a fixed yearly price periodized per month by dividing by 12.
+3;Fixed Price per Year Periodize Over Month Length;27;per_year;1;fixed;3;per_year_periodize_over_month_length;;;;;1;Revenue from a fixed yearly price periodized per month based on the length of the month in proportion to the year
+4;Active Energy Consumption;28;per_kWh;2;per_unit;1;per_month;1;active_energy_cons;;;1;Revenue from active energy consumption.
+5;Production Active Energy Reimburse;28;per_kWh;2;per_unit;1;per_month;2;active_energy_prod;;;0;Cost payed to production units helping the grid.
+6;Subscribed Power;32;per_kW_per_year;3;subscribed_power;2;per_year_divide_by_12;;;;;1;Revenue from subscribed power.
+7;Connection Power;32;per_kW_per_year;4;connection_power;3;per_year_periodize_over_month_length;;;;;1;Revenue from connection power.
+8;Active Power High Load;30;per_kW_per_month;2;per_unit;1;per_month;19;max_deb_active_power_cons_high_load;;;1;Revenue from active power consumption during high load period.
+9;Active Power Low Load;30;per_kW_per_month;2;per_unit;1;per_month;19;max_deb_active_power_cons_high_load;;;1;Revenue from active power consumption during low load period.
+10;Overshoot Max Reactive Power Cons in Relation to Subscribed Power;31;per_kVAr_per_month;5;overshoot_subscribed_power;1;per_month;15;max_reactive_power_cons;;;1;Revenue from overshoot of max reactive power cons in relation to subscribed power.
+11;Overshoot Max Reactive Power Cons in Relation Max Active Power Cons;33;per_kVAr_per_year;7;overshoot_comparison_meter_data_serie;3;per_year_periodize_over_month_length;15;max_reactive_power_cons;13;max_active_power_cons;1;Revenue from overshoot of max reactive power cons in relation to max active power cons.
+12;Overshoot Active Energy Prod in Relation to Connection Power;32;per_kW_per_year ;6;overshoot_connection_power;2;per_year_divide_by_12;2;active_energy_prod;;;1;Revenue from overshoot of active energy prod in relation to connection power.

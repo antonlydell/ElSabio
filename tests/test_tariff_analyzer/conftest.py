@@ -12,6 +12,7 @@ from unittest.mock import Mock
 
 # Third party
 import duckdb
+import pandas as pd
 import pytest
 from sqlalchemy import select
 
@@ -20,7 +21,19 @@ import elsabio.cli.main
 import elsabio.config.config
 from elsabio.config import BitwardenPasswordlessConfig, ConfigManager, ImportMethod, load_config
 from elsabio.database import URL, SessionFactory
-from elsabio.database.models.tariff_analyzer import Facility, FacilityType, Product
+from elsabio.database.models.tariff_analyzer import (
+    CustomerGroup,
+    Facility,
+    FacilityContract,
+    FacilityCustomerGroupLink,
+    FacilityType,
+    Product,
+    Tariff,
+    TariffComponent,
+    TariffComponentType,
+    TariffCostGroup,
+    TariffCostGroupCustomerGroupLink,
+)
 from elsabio.models.tariff_analyzer import (
     CustomerGroupDataFrameModel,
     FacilityContractDataFrameModel,
@@ -32,6 +45,8 @@ from elsabio.models.tariff_analyzer import (
     ProductImportDataFrameModel,
     SerieValueDataFrameModel,
     SerieValueImportDataFrameModel,
+    TariffValueFacilityDataFrameModel,
+    TariffValueTotalDataFrameModel,
 )
 from elsabio.models.tariff_analyzer import FacilityTypeEnum as FacilityTypeEnum
 from tests.config import STATIC_FILES_TARIFF_ANALYZER_BASE_DIR
@@ -285,6 +300,75 @@ def max_reactive_power_cons_model_to_import(
     return SerieValueImportDataFrameModel(df=df)
 
 
+@pytest.fixture
+def active_energy_prod_model() -> SerieValueDataFrameModel:
+    r"""The test dataset of the active energy production.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.SerieValueDataFrameModel
+        The DataFrame model of the active energy production.
+    """
+
+    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / '2025-10_2025-11_active_energy_prod.csv'
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    df = (
+        duckdb.read_csv(str(file), sep=';')
+        .df(date_as_object=True)
+        .astype(SerieValueDataFrameModel.dtypes)
+    )
+
+    return SerieValueDataFrameModel(df=df)
+
+
+@pytest.fixture
+def max_deb_active_power_cons_high_load_model() -> SerieValueDataFrameModel:
+    r"""The test dataset of the max debitable active power consumption during high load.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.SerieValueDataFrameModel
+        The DataFrame model of the max debitable active power consumption during high load.
+    """
+
+    file = (
+        STATIC_FILES_TARIFF_ANALYZER_BASE_DIR
+        / '2025-10_2025-11_max_deb_active_power_cons_high_load.csv'
+    )
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    df = (
+        duckdb.read_csv(str(file), sep=';')
+        .df(date_as_object=True)
+        .astype(SerieValueDataFrameModel.dtypes)
+    )
+
+    return SerieValueDataFrameModel(df=df)
+
+
+@pytest.fixture
+def max_active_power_cons_model() -> SerieValueDataFrameModel:
+    r"""The test dataset of the max active power consumption.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.SerieValueDataFrameModel
+        The DataFrame model of the max active power consumption.
+    """
+
+    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / '2025-10_2025-11_max_active_power_cons.csv'
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    df = (
+        duckdb.read_csv(str(file), sep=';')
+        .df(date_as_object=True)
+        .astype(SerieValueDataFrameModel.dtypes)
+    )
+
+    return SerieValueDataFrameModel(df=df)
+
+
 @pytest.fixture(scope='session')
 def customer_group_model() -> CustomerGroupDataFrameModel:
     r"""The test dataset of the customer groups.
@@ -335,6 +419,141 @@ def facility_customer_group_link_model() -> FacilityCustomerGroupLinkDataFrameMo
     )
 
     return FacilityCustomerGroupLinkDataFrameModel(df=df)
+
+
+@pytest.fixture(scope='session')
+def tariff_df() -> pd.DataFrame:
+    r"""The test dataset of the tariffs.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The DataFrame of the tariffs.
+    """
+
+    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / 'tariff.csv'
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    return pd.read_csv(file, sep=';', dtype_backend='pyarrow')
+
+
+@pytest.fixture(scope='session')
+def tariff_cost_group_df() -> pd.DataFrame:
+    r"""The test dataset of the tariff cost groups.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The DataFrame of the tariff cost groups.
+    """
+
+    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / 'tariff_cost_group.csv'
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    return pd.read_csv(file, sep=';', dtype_backend='pyarrow')
+
+
+@pytest.fixture(scope='session')
+def tariff_cost_group_customer_group_link_df() -> pd.DataFrame:
+    r"""The test dataset of the tariff cost group customer group links.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The DataFrame of the tariff cost groups.
+    """
+
+    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / 'tariff_cost_group_customer_group_link.csv'
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    return pd.read_csv(file, sep=';', dtype_backend='pyarrow')
+
+
+@pytest.fixture(scope='session')
+def tariff_component_type_df() -> pd.DataFrame:
+    r"""The test dataset of the tariff component types.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The DataFrame of the tariff component types.
+    """
+
+    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / 'tariff_component_type.csv'
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    exclude_cols = ', '.join(
+        c
+        for c in (
+            'unit_code',
+            'calc_strategy_code',
+            'periodize_strategy_code',
+            'serie_type_code',
+            'comparison_serie_type_code',
+        )
+    )
+
+    return duckdb.read_csv(str(file), sep=';').select(f'* EXCLUDE({exclude_cols})').df()
+
+
+@pytest.fixture(scope='session')
+def tariff_component_df() -> pd.DataFrame:
+    r"""The test dataset of the tariff components.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The DataFrame of the tariff components
+    """
+
+    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / 'tariff_component.csv'
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    return duckdb.read_csv(str(file), sep=';').select('* EXCLUDE(unit, description)').df()
+
+
+@pytest.fixture(scope='session')
+def tariff_value_facility_model() -> TariffValueFacilityDataFrameModel:
+    r"""The test dataset of the calculated tariff value result per facility.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.TariffValueFacilityDataFrameModel
+        The DataFrame model of the tariff value result per facility.
+    """
+
+    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / '2025-10_2025-11_tariff_value_facility.csv'
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    df = (
+        duckdb.read_csv(str(file), sep=';')
+        .select('* EXCLUDE(ean, description)')
+        .df(date_as_object=True)
+        .astype(TariffValueFacilityDataFrameModel.dtypes)
+    )
+
+    return TariffValueFacilityDataFrameModel(df=df)
+
+
+@pytest.fixture(scope='session')
+def tariff_value_total_model() -> TariffValueTotalDataFrameModel:
+    r"""The test dataset of the calculated total tariff value result.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.TariffValueTotalDataFrameModel
+        The DataFrame model of the total tariff value result.
+    """
+
+    file = STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / '2025-10_2025-11_tariff_value_total.csv'
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    df = (
+        duckdb.read_csv(str(file), sep=';')
+        .df(date_as_object=True)
+        .astype(TariffValueTotalDataFrameModel.dtypes)
+    )
+    return TariffValueTotalDataFrameModel(df=df)
 
 
 # =================================================================================================
@@ -416,6 +635,69 @@ def sqlite_db_with_products_and_facilities(
         )
         facilities_model.df.to_sql(
             name=Facility.__tablename__, con=conn, if_exists='append', index=False
+        )
+
+    return session_factory
+
+
+@pytest.fixture
+def sqlite_db_with_tariffs(
+    initialized_sqlite_db: tuple[SessionFactory, URL],
+    product_model: ProductDataFrameModel,
+    facilities_model: FacilityDataFrameModel,
+    facility_contract_model: FacilityContractDataFrameModel,
+    customer_group_model: CustomerGroupDataFrameModel,
+    facility_customer_group_link_model: FacilityCustomerGroupLinkDataFrameModel,
+    tariff_df: pd.DataFrame,
+    tariff_cost_group_df: pd.DataFrame,
+    tariff_cost_group_customer_group_link_df: pd.DataFrame,
+    tariff_component_type_df: pd.DataFrame,
+    tariff_component_df: pd.DataFrame,
+) -> SessionFactory:
+    r"""An ElSabio SQLite database with tariffs and their related objects defined.
+
+    Contains all data to enable tariff calculations.
+
+    Returns
+    -------
+    session_factory : elsabio.db.SessionFactory
+        The session factory that can produce new database sessions.
+    """
+
+    session_factory, _ = initialized_sqlite_db
+
+    with session_factory() as session:
+        conn = session.get_bind()
+        product_model.df.to_sql(
+            name=Product.__tablename__, con=conn, if_exists='append', index=False
+        )
+        facilities_model.df.to_sql(
+            name=Facility.__tablename__, con=conn, if_exists='append', index=False
+        )
+        facility_contract_model.df.to_sql(
+            name=FacilityContract.__tablename__, con=conn, if_exists='append', index=False
+        )
+        customer_group_model.df.to_sql(
+            name=CustomerGroup.__tablename__, con=conn, if_exists='append', index=False
+        )
+        facility_customer_group_link_model.df.to_sql(
+            name=FacilityCustomerGroupLink.__tablename__, con=conn, if_exists='append', index=False
+        )
+        tariff_df.to_sql(name=Tariff.__tablename__, con=conn, if_exists='append', index=False)
+        tariff_cost_group_df.to_sql(
+            name=TariffCostGroup.__tablename__, con=conn, if_exists='append', index=False
+        )
+        tariff_cost_group_customer_group_link_df.to_sql(
+            name=TariffCostGroupCustomerGroupLink.__tablename__,
+            con=conn,
+            if_exists='append',
+            index=False,
+        )
+        tariff_component_type_df.to_sql(
+            name=TariffComponentType.__tablename__, con=conn, if_exists='append', index=False
+        )
+        tariff_component_df.to_sql(
+            name=TariffComponent.__tablename__, con=conn, if_exists='append', index=False
         )
 
     return session_factory

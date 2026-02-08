@@ -1,0 +1,10 @@
+tariff_cost_group_id;tariff_id;name;description
+1;1;Apartment;Customers with a apartment contracts.
+2;1;16 A;Customers with a fuse size of 16 A.
+3;1;20 A - 25 A;Customers with a fuse size of 20-25 A.
+4;1;Low Voltage Subscribed Power;Customers with subscribed low voltage power.
+5;1;High Voltage 500 - 1000 kW;Customers with high voltage power 0,5 to 1 MW.
+6;1;High Voltage > 1000 kW;Customers with high voltage power > 1 MW.
+7;1;Production < 1000 kW;Customers with production facilities < 1 MW.
+8;1;Production >= 1000 kW;Customers with production facilities >= 1 MW.
+9;2;Fuse Size 16-63 A;Customers with a fuse size between 16-63 A

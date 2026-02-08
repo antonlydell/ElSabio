@@ -1,0 +1,3 @@
+tariff_id;name;currency_id;validity_start;validity_end;high_load_period_start;high_load_period_end;description
+1;Tariff 1;1;2025-10-01;;11;3;The new power tariff.
+2;Tariff 2;1;;;;Another tariff.

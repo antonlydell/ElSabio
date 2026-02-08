@@ -8,7 +8,9 @@ r"""Fixtures for testing ElSabio."""
 # Standard library
 import io
 import logging
+from collections.abc import Callable
 from copy import deepcopy
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -20,6 +22,7 @@ from sqlalchemy.orm import sessionmaker
 
 # Local
 import elsabio.config.config
+import elsabio.operations.file
 from elsabio.config import (
     BITWARDEN_PASSWORDLESS_API_URL,
     LOGGING_DEFAULT_DATETIME_FORMAT,
@@ -397,3 +400,56 @@ def initialized_sqlite_db(
         init(session=session)
 
     return session_factory, db_url
+
+
+# =================================================================================================
+# Datetime
+# =================================================================================================
+
+
+@pytest.fixture(scope='session')
+def mocked_get_current_timestamp() -> tuple[Callable[[ZoneInfo | None], datetime], datetime]:
+    r"""A mocked version of the function :func:`datetime.get_current_timestamp`.
+
+    Returns
+    -------
+    mocked_get_current_timestamp : Callable[[zoneinfo.ZoneInfo | None], datetime]
+        The mock function to use for replacing the real function.
+
+    timestamp : datetime.datetime
+        The mocked timestamp return from `mocked_get_current_timestamp`.
+    """
+
+    timestamp = datetime(2026, 1, 2, 20, 26, 24, tzinfo=ZoneInfo('Europe/Stockholm'))
+
+    def mocked_get_current_timestamp(tz: ZoneInfo | None = None) -> datetime:  # noqa: ARG001
+        r"""A mocked version of `datetime.get_current_timestamp`"""
+
+        return timestamp
+
+    return mocked_get_current_timestamp, timestamp
+
+
+@pytest.fixture
+def mocked_creation_datetime(
+    monkeypatch: pytest.MonkeyPatch,
+    mocked_get_current_timestamp: tuple[Callable[[ZoneInfo | None], datetime], datetime],
+) -> tuple[str, datetime]:
+    r"""A mocked creation datetime to use in filenames.
+
+    Mocks the function :func:`elsabio.datetime.get_current_timestamp`.
+
+    Returns
+    -------
+    str
+        The string version of the creation datetime that can be used in filenames.
+
+    datetime.datetime
+        The datetime object of the creation datetime.
+    """
+
+    func, timestamp = mocked_get_current_timestamp
+
+    monkeypatch.setattr(elsabio.operations.file, 'get_current_timestamp', func)
+
+    return timestamp.isoformat(timespec='seconds').replace(':', '.'), timestamp
