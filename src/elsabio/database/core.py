@@ -71,6 +71,7 @@ def load_sql_query_as_dataframe(
     session: Session,
     dtypes: DtypeMapping,
     parse_dates: list[str] | None = None,
+    index_cols: str | list[str] | None = None,
     error_msg: str = '',
 ) -> tuple[pd.DataFrame, OperationResult]:
     r"""Load the result of a SQL query into a :class:`pandas.DataFrame`.
@@ -88,6 +89,9 @@ def load_sql_query_as_dataframe(
 
     parse_dates : list[str] or None, default None
         The columns to parse as datetime columns.
+
+    index_cols : str or list[str] or None, default None
+        The column(s) to set as the index of the DataFrame.
 
     error_msg : str, default ''
         An optional error message to include if an exception is raised when executing the query.
@@ -107,6 +111,7 @@ def load_sql_query_as_dataframe(
             con=session.get_bind(),
             dtype=dtypes,
             parse_dates=parse_dates,
+            index_col=index_cols,
             dtype_backend='pyarrow',
         )
     except SQLAlchemyError as e:
