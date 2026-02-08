@@ -8,7 +8,9 @@ r"""Fixtures for testing ElSabio."""
 # Standard library
 import io
 import logging
+from collections.abc import Callable
 from copy import deepcopy
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -20,6 +22,7 @@ from sqlalchemy.orm import sessionmaker
 
 # Local
 import elsabio.config.config
+import elsabio.operations.file
 from elsabio.config import (
     BITWARDEN_PASSWORDLESS_API_URL,
     LOGGING_DEFAULT_DATETIME_FORMAT,
@@ -28,7 +31,15 @@ from elsabio.config import (
     LogLevel,
     Stream,
 )
-from elsabio.config.tariff_analyzer import DEFAULT_DATA_DIR
+from elsabio.config.tariff_analyzer import (
+    DEFAULT_DATA_DIR,
+    DEFAULT_ERROR_DIR_IMPORT,
+    DEFAULT_ERROR_DIR_MAP_FACILITIES,
+    DEFAULT_ERROR_DIR_TARIFF_VALUE,
+    DEFAULT_METER_DATA_DIR,
+    DEFAULT_TARIFF_VALUE_FACILITY_DIR,
+    DEFAULT_TARIFF_VALUE_TOTAL_DIR,
+)
 from elsabio.database import URL, SessionFactory, init
 from elsabio.database.models import Base
 from tests.config import STATIC_FILES_CONFIG_BASE_DIR
@@ -105,7 +116,19 @@ def config_data(tmp_path: Path) -> tuple[str, dict[str, Any]]:
         'private_key': 'bwp_private_key',
         'url': BITWARDEN_PASSWORDLESS_API_URL,
     }
-    tariff_analyzer = {'enabled': True, 'data_dir': DEFAULT_DATA_DIR, 'data': {}}
+    tariff_analyzer = {
+        'enabled': True,
+        'data_dir': DEFAULT_DATA_DIR,
+        'meter_data_dir': DEFAULT_METER_DATA_DIR,
+        'tariff_value_facility_dir': DEFAULT_TARIFF_VALUE_FACILITY_DIR,
+        'tariff_value_total_dir': DEFAULT_TARIFF_VALUE_TOTAL_DIR,
+        'tariff_value_error_dir': DEFAULT_ERROR_DIR_TARIFF_VALUE,
+        'map_facilities_error_dir': DEFAULT_ERROR_DIR_MAP_FACILITIES,
+        'import_error_dir': DEFAULT_ERROR_DIR_IMPORT,
+        'error_file_col_sep': ';',
+        'error_file_encoding': 'utf-8',
+        'data': {},
+    }
     logging_config = {
         'disabled': False,
         'min_log_level': LogLevel.INFO,
@@ -377,3 +400,56 @@ def initialized_sqlite_db(
         init(session=session)
 
     return session_factory, db_url
+
+
+# =================================================================================================
+# Datetime
+# =================================================================================================
+
+
+@pytest.fixture(scope='session')
+def mocked_get_current_timestamp() -> tuple[Callable[[ZoneInfo | None], datetime], datetime]:
+    r"""A mocked version of the function :func:`datetime.get_current_timestamp`.
+
+    Returns
+    -------
+    mocked_get_current_timestamp : Callable[[zoneinfo.ZoneInfo | None], datetime]
+        The mock function to use for replacing the real function.
+
+    timestamp : datetime.datetime
+        The mocked timestamp return from `mocked_get_current_timestamp`.
+    """
+
+    timestamp = datetime(2026, 1, 2, 20, 26, 24, tzinfo=ZoneInfo('Europe/Stockholm'))
+
+    def mocked_get_current_timestamp(tz: ZoneInfo | None = None) -> datetime:  # noqa: ARG001
+        r"""A mocked version of `datetime.get_current_timestamp`"""
+
+        return timestamp
+
+    return mocked_get_current_timestamp, timestamp
+
+
+@pytest.fixture
+def mocked_creation_datetime(
+    monkeypatch: pytest.MonkeyPatch,
+    mocked_get_current_timestamp: tuple[Callable[[ZoneInfo | None], datetime], datetime],
+) -> tuple[str, datetime]:
+    r"""A mocked creation datetime to use in filenames.
+
+    Mocks the function :func:`elsabio.datetime.get_current_timestamp`.
+
+    Returns
+    -------
+    str
+        The string version of the creation datetime that can be used in filenames.
+
+    datetime.datetime
+        The datetime object of the creation datetime.
+    """
+
+    func, timestamp = mocked_get_current_timestamp
+
+    monkeypatch.setattr(elsabio.operations.file, 'get_current_timestamp', func)
+
+    return timestamp.isoformat(timespec='seconds').replace(':', '.'), timestamp

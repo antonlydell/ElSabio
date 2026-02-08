@@ -1,0 +1,5 @@
+serie_type_code;facility_id;ean;date_id;serie_value;status_id
+active_energy_prod;10;123456789000000003;2025-10-01;3401;
+active_energy_prod;8;123456789000000001;2025-11-01;98.98;56
+active_energy_prod;9;123456789000000002;2025-11-01;345.12;
+active_energy_prod;10;123456789000000003;2025-11-01;9976.74;

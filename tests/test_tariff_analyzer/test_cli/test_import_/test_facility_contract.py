@@ -425,9 +425,9 @@ class TestTariffAnalyzerImportFacilityContractCommand:
             pytest.param(
                 'sqlite_db_with_2_facility_contracts',
                 (
-                    'Successfully imported 9 new facility contracts and '
+                    'Successfully imported 14 new facility contracts and '
                     'updated 2 existing facility contracts in interval '
-                    '2025-11-01 - 2025-12-01!'
+                    '2025-10-01 - 2025-12-01!'
                 ),
                 id='2 facility contracts in db',
             ),
@@ -435,17 +435,17 @@ class TestTariffAnalyzerImportFacilityContractCommand:
                 'sqlite_db_with_all_facility_contracts',
                 (
                     'Successfully imported 0 new facility contracts and '
-                    'updated 11 existing facility contracts in interval '
-                    '2025-11-01 - 2025-12-01!'
+                    'updated 16 existing facility contracts in interval '
+                    '2025-10-01 - 2025-12-01!'
                 ),
                 id='All facility contracts in db',
             ),
             pytest.param(
                 'sqlite_db_with_facilities_and_products',
                 (
-                    'Successfully imported 11 new facility contracts and '
+                    'Successfully imported 16 new facility contracts and '
                     'updated 0 existing facility contracts in interval '
-                    '2025-11-01 - 2025-12-01!'
+                    '2025-10-01 - 2025-12-01!'
                 ),
                 id='No facility contracts in db',
             ),

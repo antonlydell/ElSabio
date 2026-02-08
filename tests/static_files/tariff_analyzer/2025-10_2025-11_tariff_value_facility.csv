@@ -1,0 +1,30 @@
+facility_id;ean;date_id;tariff_id;tariff_cost_group_id;customer_group_id;tariff_component_type_id;tariff_component_id;total_price;total_value;price;price_value;authority_fee;authority_fee_value;serie_value;comparison_serie_value;overshoot_value;description
+4;123456000000000004;2025-10-01;1;4;10;6;5;56;420;56;420;0;0;90;;;Subscribed power for low voltage customers. Periodize : per_year_divide_by_12
+5;123456000000000005;2025-10-01;1;4;10;6;5;56;560;56;560;0;0;120;;;Subscribed power for low voltage customers. Periodize : per_year_divide_by_12
+4;123456000000000004;2025-10-01;1;4;10;8;6;3;309.72;2;206.48;1;103.24;103.24;;;Active power consumption during high load period for low voltage customers. Periodize : per_month
+5;123456000000000005;2025-10-01;1;4;10;8;6;3;364.26;2;242.84;1;121.42;121.42;;;Active power consumption during high load period for low voltage customers. Periodize : per_month
+4;123456000000000004;2025-10-01;1;4;10;9;7;22;2271.28;22;2271.28;0;0;103.24;;;Active power consumption during low load period for low voltage customers. Periodize : per_month
+5;123456000000000005;2025-10-01;1;4;10;9;7;22;2671.24;22;2671.24;0;0;121.42;;;Active power consumption during low load period for low voltage customers. Periodize : per_month
+6;123456000000000006;2025-10-01;1;5;12;10;8;8;0;8;0;0;0;112.1;500;0;Overshoot max reactive power cons in relation to subscribed power. High Voltage 500 - 1000 kW. max(8 * ( 112.1 - (500/2)), 0). Periodize : per_month
+7;123456000000000007;2025-10-01;1;6;13;11;9;17;0;16;0;1;0;74.12;94.74;0;Overshoot of max reactive power cons in relation to max active power cons. High Voltage > 1000 kW. max(17 * (74.12 - (94.74/1), 0). Periodize : per_year_periodize_over_month_length
+10;123456789000000003;2025-10-01;1;8;15;7;11;12.5;9820.206;12.5;9820.206;0;0;9250;;;Cost per connection power. Periodize : per_year_periodize_over_month_length
+10;123456789000000003;2025-10-01;1;8;15;12;12;5.25;0;4;0;1.25;0;3401;9250;0;Overshoot of active energy prod in relation to connection power for production units. Periodize : per_year_divide_by_12
+1;123456000000000001;2025-11-01;1;1;1;1;1;125;125;100;100;25;25;;;;Fixed price per month.
+2;123456000000000002;2025-11-01;1;2;2;2;2;1200;100;1200;100;0;0;;;;Fixed price per year divided by 12.
+2;123456000000000002;2025-11-01;1;2;2;4;3;0.26;325.0598;0.22;275.0506;0.04;50.009;1250.23;;;Energy price for 16 customers excluding apartments. Periodize : per_month
+3;123456000000000003;2025-11-01;1;3;4;3;4;1400;115.068;1400;115.068;0;0;;;;Fixed price per year for 20-25 A customers. Periodize : per_year_periodize_over_month_length
+4;123456000000000004;2025-11-01;1;4;10;6;5;56;443.333;56;443.333;0;0;95;;;Subscribed power for low voltage customers. Periodize : per_year_divide_by_12
+5;123456000000000005;2025-11-01;1;4;10;6;5;56;560;56;560;0;0;120;;;Subscribed power for low voltage customers. Periodize : per_year_divide_by_12
+4;123456000000000004;2025-11-01;1;4;10;8;6;44;4399.956;43;4299.957;1;99.999;99.999;;;Active power consumption during high load period for low voltage customers. Periodize : per_month
+5;123456000000000005;2025-11-01;1;4;10;8;6;44;5065.412;43;4950.289;1;115.123;115.123;;;Active power consumption during high load period for low voltage customers. Periodize : per_month
+4;123456000000000004;2025-11-01;1;4;10;9;7;0;0;0;0;0;0;99.999;;;Active power consumption during low load period for low voltage customers (not valid for month 11). Periodize : per_month
+5;123456000000000005;2025-11-01;1;4;10;9;7;0;0;0;0;0;0;115.123;;;Active power consumption during low load period for low voltage customers (not valid for month 11). Periodize : per_month
+6;123456000000000006;2025-11-01;1;5;12;10;8;8;13.84;8;13.84;0;0;266.73;530;1.730;Overshoot max reactive power cons in relation to subscribed power. High Voltage 500 - 1000 kW. max(8 * ( 266.73 - (530/2)), 0). Periodize : per_month
+7;123456000000000007;2025-11-01;1;6;13;11;9;17;2.431;16;2.288;1;0.143;65.74;64;1.740;Overshoot of max reactive power cons in relation to max active power cons. High Voltage > 1000 kW. max(17 * (65.74 - (64/1)), 0) Periodize : per_year_periodize_over_month_length
+8;123456789000000001;2025-11-01;1;7;14;5;10;0.367;36.326;0.365;36.128;0.002;0.198;98.98;;;Cost payed to production units helping the grid. Periodize : per_month
+9;123456789000000002;2025-11-01;1;7;14;5;10;0.367;126.659;0.365;125.969;0.002;0.69;345.12;;;Cost payed to production units helping the grid. Periodize : per_month
+10;123456789000000003;2025-11-01;1;8;15;7;11;12.5;9452.055;12.5;9452.055;0;0;9200;;;Cost per connection power. Periodize : per_year_periodize_over_month_length
+10;123456789000000003;2025-11-01;1;8;15;12;12;3;194.185;2;129.457;1;64.728;9976.74;9200;776.74;Overshoot of active energy prod in relation to connection power for production units (not defined for month 11). Periodize : per_year_divide_by_12
+1;123456000000000001;2025-11-01;2;9;1;1;13;110;110;110;110;0;0;;;;Fixed price for fuse size customers. Periodize : per_month
+2;123456000000000002;2025-11-01;2;9;2;1;13;110;110;110;110;0;0;;;;Fixed price for fuse size customers. Periodize : per_month
+3;123456000000000003;2025-11-01;2;9;4;1;13;110;110;110;110;0;0;;;;Fixed price for fuse size customers. Periodize : per_month

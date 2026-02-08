@@ -55,6 +55,29 @@ class DateRangeParamType(click.ParamType):
 DATE_RANGE_PARAM = DateRangeParamType()
 
 
+class IntSequenceParamType(click.ParamType):
+    r"""The integer sequence parameter.
+
+    Convert a comma (,) separated string of integers into a tuple of integers.
+    """
+
+    name = 'int-sequence'
+
+    def convert(
+        self, value: Any, param: click.Parameter | None, ctx: click.Context | None
+    ) -> tuple[int, ...]:
+        if not isinstance(value, str):
+            self.fail(f'Integer sequence source must be a string! Got {type(value)}', param, ctx)
+
+        try:
+            return tuple(int(v) for v in value.split(','))
+        except (TypeError, ValueError) as e:
+            self.fail(str(e), param, ctx)
+
+
+INT_SEQUENCE_PARAM = IntSequenceParamType()
+
+
 def exit_program(
     error: bool,
     ctx: click.Context | None = None,

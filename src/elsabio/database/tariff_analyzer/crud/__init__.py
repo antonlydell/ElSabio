@@ -22,6 +22,7 @@ from .facility_contract import (
 )
 from .facility_type import load_facility_type_mapping_model
 from .product import bulk_insert_products, bulk_update_products, load_product_mapping_model
+from .tariff import load_tariff_calculation_model, load_tariff_ids
 
 # The Public API
 __all__ = [
@@ -47,4 +48,7 @@ __all__ = [
     'bulk_insert_products',
     'bulk_update_products',
     'load_product_mapping_model',
+    # tariff
+    'load_tariff_calculation_model',
+    'load_tariff_ids',
 ]

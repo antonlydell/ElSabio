@@ -138,7 +138,10 @@ class BaseDataFrameModel(BaseModel):
     Class Variables
     ---------------
     dtypes : ClassVar[dict[str, str]]
-        The mapping of column names to their datatypes of the DataFrame.
+        The mapping of column names to their pandas data types.
+
+    duckdb_dtypes : ClassVar[dict[str, str]]
+        The mapping of column names to their DuckDB data types.
 
     index_cols : ClassVar[list[str]]
         The index columns of the DataFrame.
@@ -153,6 +156,7 @@ class BaseDataFrameModel(BaseModel):
     """
 
     dtypes: ClassVar[DtypeMapping] = {}
+    duckdb_dtypes: ClassVar[DtypeMapping] = {}
     index_cols: ClassVar[ColumnList] = []
     parse_dates: ClassVar[ColumnList] = []
 

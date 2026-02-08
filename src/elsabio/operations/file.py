@@ -7,14 +7,21 @@ r"""Operations for working with files."""
 
 # Standard library
 import os
+from collections.abc import Sequence
+from datetime import date
+from functools import partial
 from pathlib import Path
+from typing import Literal
 
 # Third party
 import duckdb
+import pandas as pd
 
 # Local
 from elsabio.core import OperationResult
 from elsabio.datetime import get_current_timestamp
+from elsabio.exceptions import ElSabioError
+from elsabio.models.tariff_analyzer import SerieValueDataFrameModel
 
 
 def read_parquet(
@@ -65,6 +72,85 @@ def read_parquet(
     return rel, result
 
 
+def read_meter_data_parquet_hive(
+    path: Path,
+    serie_type_code: str,
+    start_date: date,
+    end_date: date | None,
+    order_by: Sequence[tuple[str, Literal['ASC', 'DESC']]] | None = None,
+    conn: duckdb.DuckDBPyConnection | None = None,
+) -> tuple[duckdb.DuckDBPyRelation, OperationResult]:
+    r"""Load meter data from a parquet hive.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        The path to the parquet file or directory of parquet files.
+
+    serie_type_code : str
+        The unique code of the serie type of the meter data to load.
+
+    start_date : datetime.date
+        The start date of the interval in which to load the meter data (inclusive).
+
+    end_date : datetime.date or None
+        The end date of the interval in which to load the meter data (exclusive).
+        If None the interval is open and unbounded.
+
+    order_by : Sequence[tuple[str, Literal['ASC', 'DESC']]] or None
+        The columns to use for ordering the loaded meter data.
+        If None the dataset is ordered by the columns "date_id" and "facility_id".
+
+    conn : duckdb.DuckDBPyConnection or None, default None
+        The DuckDB connection to use for querying the parquet file(s).
+        If None the global DuckDB in-memory database is used.
+
+    Returns
+    -------
+    rel : duckdb.DuckDBPyRelation
+        The DuckDB relation object of the dataset from the parquet files. Adheres to the
+        structure of :class:`elsabio.models.tariff_analyzer.SerieValueDataFrameModel`.
+
+    result : elsabio.core.OperationResult
+        The result of loading the parquet files.
+    """
+
+    if not path.exists():
+        result = OperationResult(
+            ok=False, short_msg=f'The parquet file path "{path}" does not exist!'
+        )
+        rel = duckdb.sql('SELECT NULL')
+        return rel, result
+
+    c_serie_type_code = SerieValueDataFrameModel.c_serie_type_code
+    c_date_id = SerieValueDataFrameModel.c_date_id
+    c_facility_id = SerieValueDataFrameModel.c_facility_id
+
+    filter_by = f"{c_serie_type_code} = '{serie_type_code}'\nAND {c_date_id} >= '{start_date}'"
+    if end_date:
+        filter_by = f"{filter_by}\nAND {c_date_id} < '{end_date}'"
+
+    pattern = str(path / f'{c_serie_type_code}=*' / f'{c_date_id}=*' / '*.parquet')
+    _conn = duckdb if conn is None else conn
+
+    try:
+        rel = _conn.read_parquet(pattern, hive_partitioning=True).filter(filter_by)
+    except (duckdb.IOException, duckdb.InvalidInputException) as e:
+        result = OperationResult(
+            ok=False,
+            short_msg=str(e),
+            code=f'{e.__module__}.{e.__class__.__name__}',
+        )
+        return duckdb.sql('SELECT NULL'), result
+
+    if order_by:
+        order = ', '.join(f'{c} {asc_desc}' for c, asc_desc in order_by)
+    else:
+        order = f'{c_date_id} ASC, {c_facility_id} ASC'
+
+    return rel.order(order), OperationResult(ok=True)
+
+
 def write_parquet(
     rel: duckdb.DuckDBPyRelation,
     path: Path | str,
@@ -112,6 +198,80 @@ def write_parquet(
         result = OperationResult(ok=True)
 
     return result
+
+
+def write_csv(
+    df: pd.DataFrame | duckdb.DuckDBPyRelation,
+    output_dir: Path,
+    filename: str,
+    sep: str = ';',
+    encoding: str = 'utf-8',
+    prepend_creation_datetime: bool = True,
+) -> tuple[Path, OperationResult]:
+    r"""Write a dataset to a csv file.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame or duckdb.DuckDBPyRelation
+        The DataFrame with the error content.
+
+    path : pathlib.Path
+        The path to the output directory where to write the file.
+
+    filename : str
+        The name of the output filename including the file extension.
+
+    sep : str, default ';'
+        The column separator to use in the csv file.
+
+    encoding : str, default 'utf-8'
+        The character encoding of the file.
+
+    prepend_creation_datetime : bool, default True
+        True if the creation datetime of the file should be prepended
+        to the filename and False otherwise.
+
+    Returns
+    -------
+    file : pathlib.Path
+        The full path to the written csv file.
+
+    result : elsabio.core.OperationResult
+        The result of writing the DataFrame `df` to the csv file.
+
+    Raises
+    ------
+    elsabio.ElSabioError
+        If an invalid type for `df` is supplied.
+    """
+
+    if prepend_creation_datetime:
+        creation_datetime = get_current_timestamp().isoformat(timespec='seconds').replace(':', '.')
+        filename = f'{creation_datetime}_{filename}'
+
+    file = output_dir / filename
+
+    if isinstance(df, pd.DataFrame):
+        func = partial(df.to_csv, path_or_buf=file, sep=sep, encoding=encoding)
+    elif isinstance(df, duckdb.DuckDBPyRelation):
+        func = partial(df.to_csv, file_name=str(file), sep=sep, encoding=encoding)
+    else:
+        raise ElSabioError(
+            f'df must be a pandas.DataFrame or duckdb.DuckDBPyRelation, got {type(df)}!'
+        )
+
+    try:
+        func()
+    except (PermissionError, OSError) as e:
+        result = OperationResult(
+            ok=False, short_msg=f'Unable to write error DataFrame to file : "{file}"!\n{e!s}'
+        )
+    else:
+        result = OperationResult(
+            ok=True, short_msg=f'Successfully wrote error DataFrame to path : "{file}"!'
+        )
+
+    return file, result
 
 
 def move_files(

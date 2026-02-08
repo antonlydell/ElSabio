@@ -10,15 +10,20 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-import pytest
-
 # Third party
+import pytest
 from sqlalchemy import make_url
 
 # Local
 from elsabio.config import ImportMethod, PluginType
 from elsabio.config.tariff_analyzer import (
     DEFAULT_DATA_DIR,
+    DEFAULT_ERROR_DIR_IMPORT,
+    DEFAULT_ERROR_DIR_MAP_FACILITIES,
+    DEFAULT_ERROR_DIR_TARIFF_VALUE,
+    DEFAULT_METER_DATA_DIR,
+    DEFAULT_TARIFF_VALUE_FACILITY_DIR,
+    DEFAULT_TARIFF_VALUE_TOTAL_DIR,
     DataSource,
     DataSourceConfig,
     TariffAnalyzerConfig,
@@ -34,7 +39,19 @@ class TestTariffAnalyzerConfig:
 
         # Setup
         # ===========================================================
-        exp_result = {'enabled': True, 'data_dir': DEFAULT_DATA_DIR, 'data': {}}
+        exp_result = {
+            'enabled': True,
+            'data_dir': DEFAULT_DATA_DIR,
+            'meter_data_dir': DEFAULT_METER_DATA_DIR,
+            'tariff_value_facility_dir': DEFAULT_TARIFF_VALUE_FACILITY_DIR,
+            'tariff_value_total_dir': DEFAULT_TARIFF_VALUE_TOTAL_DIR,
+            'tariff_value_error_dir': DEFAULT_ERROR_DIR_TARIFF_VALUE,
+            'map_facilities_error_dir': DEFAULT_ERROR_DIR_MAP_FACILITIES,
+            'import_error_dir': DEFAULT_ERROR_DIR_IMPORT,
+            'error_file_col_sep': ';',
+            'error_file_encoding': 'utf-8',
+            'data': {},
+        }
 
         # Exercise
         # ===========================================================
@@ -58,6 +75,14 @@ class TestTariffAnalyzerConfig:
         data_dir = tmp_path / 'data'
         data_dir.mkdir()
 
+        meter_data_dir = data_dir / 'meter_data'
+        tariff_value_facility_dir = data_dir / 'tariff' / 'facility'
+        tariff_value_total_dir = data_dir / 'tariff' / 'total'
+
+        tariff_value_error_dir = data_dir / 'tariff_value' / 'error'
+        map_facilities_error_dir = data_dir / 'facilities' / 'errors'
+        import_error_dir = data_dir / 'error' / 'file_imports'
+
         facility_path_input = tmp_path / 'facility'
         facility_path_input.mkdir()
 
@@ -70,6 +95,14 @@ class TestTariffAnalyzerConfig:
         input_data = {
             'enabled': False,
             'data_dir': str(data_dir),
+            'meter_data_dir': str(meter_data_dir),
+            'tariff_value_facility_dir': str(tariff_value_facility_dir),
+            'tariff_value_total_dir': str(tariff_value_total_dir),
+            'tariff_value_error_dir': str(tariff_value_error_dir),
+            'map_facilities_error_dir': str(map_facilities_error_dir),
+            'import_error_dir': str(import_error_dir),
+            'error_file_col_sep': ',',
+            'error_file_encoding': 'windows-1252',
             'data': {
                 'facility': {
                     'method': 'file',
@@ -100,6 +133,14 @@ class TestTariffAnalyzerConfig:
         exp_result = {
             'enabled': False,
             'data_dir': data_dir,
+            'meter_data_dir': meter_data_dir,
+            'tariff_value_facility_dir': tariff_value_facility_dir,
+            'tariff_value_total_dir': tariff_value_total_dir,
+            'tariff_value_error_dir': tariff_value_error_dir,
+            'map_facilities_error_dir': map_facilities_error_dir,
+            'import_error_dir': import_error_dir,
+            'error_file_col_sep': ',',
+            'error_file_encoding': 'windows-1252',
             'data': {
                 DataSource.FACILITY: {
                     'method': ImportMethod.FILE,
@@ -133,6 +174,51 @@ class TestTariffAnalyzerConfig:
         # Exercise
         # ===========================================================
         result = TariffAnalyzerConfig.model_validate(input_data)
+
+        # Verify
+        # ===========================================================
+        print(f'result\n{result}\n')
+        print(f'exp_result\n{exp_result}')
+
+        assert result.model_dump(by_alias=True) == exp_result
+
+        # Clean up - None
+        # ===========================================================
+
+    def test_sub_directories_from_data_dir(self, tmp_path: Path) -> None:
+        r"""Test setting the sub-directories based on the `data_dir` directory."""
+
+        # Setup
+        # ===========================================================
+        data_dir = tmp_path / 'data'
+        data_dir.mkdir()
+
+        meter_data_dir = data_dir / 'meter_data'
+        tariff_value_facility_dir = data_dir / 'tariff_value' / 'facility'
+        tariff_value_total_dir = data_dir / 'tariff_value' / 'total'
+
+        error_dir = data_dir / 'error'
+        tariff_value_error_dir = error_dir / 'tariff_value'
+        map_facilities_error_dir = error_dir / 'map_facilities'
+        import_error_dir = error_dir / 'import'
+
+        exp_result = {
+            'enabled': True,
+            'data_dir': data_dir,
+            'meter_data_dir': meter_data_dir,
+            'tariff_value_facility_dir': tariff_value_facility_dir,
+            'tariff_value_total_dir': tariff_value_total_dir,
+            'tariff_value_error_dir': tariff_value_error_dir,
+            'map_facilities_error_dir': map_facilities_error_dir,
+            'import_error_dir': import_error_dir,
+            'error_file_col_sep': ';',
+            'error_file_encoding': 'utf-8',
+            'data': {},
+        }
+
+        # Exercise
+        # ===========================================================
+        result = TariffAnalyzerConfig(data_dir=data_dir)
 
         # Verify
         # ===========================================================
@@ -205,19 +291,31 @@ class TestTariffAnalyzerConfig:
         # ===========================================================
 
     @pytest.mark.raises
-    def test_data_dir_path_is_file(self, tmp_path: Path) -> None:
-        r"""Test to supply a file to the `data_dir` field."""
+    @pytest.mark.parametrize(
+        'dir_name',
+        [
+            pytest.param('data_dir', id='data_dir'),
+            pytest.param('meter_data_dir', id='meter_data_dir'),
+            pytest.param('tariff_value_facility_dir', id='tariff_value_facility_dir'),
+            pytest.param('tariff_value_total_dir', id='tariff_value_total_dir'),
+            pytest.param('tariff_value_error_dir', id='tariff_value_error_dir'),
+            pytest.param('map_facilities_error_dir', id='map_facilities_error_dir'),
+            pytest.param('import_error_dir', id='import_error_dir'),
+        ],
+    )
+    def test_dir_path_is_file(self, dir_name: str, tmp_path: Path) -> None:
+        r"""Test to supply a file to the directory fields."""
 
         # Setup
         # ===========================================================
         file = tmp_path / 'data_dir.txt'
         file.touch()
-        error_msg_exp = f'tariff_analyzer.data_dir = "{file}" must be a directory!'
+        error_msg_exp = f'tariff_analyzer.{dir_name} = "{file}" must be a directory!'
 
         # Exercise
         # ===========================================================
         with pytest.raises(ConfigError) as exc_info:
-            TariffAnalyzerConfig(data_dir=file)
+            TariffAnalyzerConfig.model_validate({dir_name: file})
 
         # Verify
         # ===========================================================

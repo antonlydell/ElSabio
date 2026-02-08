@@ -1,0 +1,5 @@
+serie_type_code;facility_id;ean;date_id;serie_value;status_id
+max_deb_active_power_cons_high_load;4;123456000000000004;2025-10-01;103.24;ok
+max_deb_active_power_cons_high_load;5;123456000000000005;2025-10-01;121.42;42
+max_deb_active_power_cons_high_load;4;123456000000000004;2025-11-01;99.999;estimated
+max_deb_active_power_cons_high_load;5;123456000000000005;2025-11-01;115.123;ok
