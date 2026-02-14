@@ -53,8 +53,8 @@ from elsabio.operations.tariff_analyzer.tariff import (
     '-t',
     type=INT_SEQUENCE_PARAM,
     help=(
-        'The tariff_id:s of the tariffs to calculate. '
-        'If not specified all defined tariffs are calculated.'
+        'The tariff_id:s of the tariffs to calculate specified as a comma separated list '
+        '(e.g. "1, 2"). If not specified all defined tariffs are calculated.'
     ),
 )
 @click.pass_context
