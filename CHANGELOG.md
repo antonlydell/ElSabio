@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.5.0] - 2026-02-14
+
+Calculate the value (revenue/cost) of the tariffs in the Tariff Analyzer module!
+
+The new CLI command `elsabio ta tariff calc` provides functionality to perform the tariff
+calculations for all or a subset of tariffs within selected time interval. The tariff value
+is calculated per facility and also aggregated per tariff component to facilitate faster access
+to the tariff values depending on the desired level of granularity. The calculated tariff values
+are stored in parquet files partitioned by `tariff_id` and `month_id`.
+
+
+### Added
+
+- `elsabio ta tariff calc` : Calculate the value (revenue/cost) of tariffs.
+
+
 ## [0.4.0] - 2026-01-08
 
 Map facilities to customer groups in the Tariff Analyzer module!
@@ -72,7 +88,8 @@ A first release and declaration of the project.
 - Registration on [PyPI](https://pypi.org/project/ElSabio/0.1.0/).
 
 
-[Unreleased]: https://github.com/antonlydell/ElSabio/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/antonlydell/ElSabio/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/antonlydell/ElSabio/releases/tag/v0.5.0
 [0.4.0]: https://github.com/antonlydell/ElSabio/releases/tag/v0.4.0
 [0.3.0]: https://github.com/antonlydell/ElSabio/releases/tag/v0.3.0
 [0.2.0]: https://github.com/antonlydell/ElSabio/releases/tag/v0.2.0
