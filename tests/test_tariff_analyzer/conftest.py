@@ -19,7 +19,13 @@ from sqlalchemy import select
 # Local
 import elsabio.cli.main
 import elsabio.config.config
-from elsabio.config import BitwardenPasswordlessConfig, ConfigManager, ImportMethod, load_config
+from elsabio.config import (
+    BitwardenPasswordlessConfig,
+    ConfigManager,
+    DatabaseConfig,
+    ImportMethod,
+    load_config,
+)
 from elsabio.database import URL, SessionFactory
 from elsabio.database.models.tariff_analyzer import (
     CustomerGroup,
@@ -820,7 +826,7 @@ def config_import_method_file_in_config_file_env_var(
 
 @pytest.fixture
 def mocked_load_config_with_no_import_data(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, sqlite_db_with_2_facilities: SessionFactory
 ) -> tuple[Mock, ConfigManager]:
     r"""A mocked version of `elsabio.config.load_config`.
 
@@ -836,8 +842,12 @@ def mocked_load_config_with_no_import_data(
         The configuration.
     """
 
+    engine = sqlite_db_with_2_facilities.kw['bind']
+    db_cfg = DatabaseConfig(url=str(engine.url), create_database=False)
+
     cm = ConfigManager(
-        bwp=BitwardenPasswordlessConfig(public_key='public_key', private_key='private_key')
+        database=db_cfg,
+        bwp=BitwardenPasswordlessConfig(public_key='public_key', private_key='private_key'),
     )
 
     m = Mock(spec_set=load_config, name='mocked_load_config', return_value=cm)

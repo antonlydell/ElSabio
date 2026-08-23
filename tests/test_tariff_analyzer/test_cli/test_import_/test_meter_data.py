@@ -490,6 +490,7 @@ class TestTariffAnalyzerImportFacilityContractCommand:
         # Clean up - None
         # ===========================================================
 
+    @pytest.mark.usefixtures('mocked_load_config_with_no_import_data')
     def test_invalid_data_source(self) -> None:
         r"""Test to supply an invalid data source."""
 
