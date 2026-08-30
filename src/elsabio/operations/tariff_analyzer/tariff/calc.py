@@ -632,14 +632,15 @@ def get_serie_types(rel: duckdb.DuckDBPyRelation) -> tuple[str, ...]:
     c_serie_type_code = TariffCalculationDataFrameModel.c_serie_type_code
     c_comparison_serie_type_code = TariffCalculationDataFrameModel.c_comparison_serie_type_code
 
-    return tuple(
+    serie_type_df = (
         rel.unique(c_serie_type_code)
         .union(rel.unique(c_comparison_serie_type_code))
         .unique(c_serie_type_code)
         .filter(f'{c_serie_type_code} IS NOT NULL')
         .to_df()
-        .squeeze()
     )
+
+    return tuple(serie_type_df[c_serie_type_code])
 
 
 def load_meter_data(

@@ -221,7 +221,8 @@ def active_energy_cons_parquet_file_invalid_serie_type_code_and_ean(
     c_serie_type_code = SerieValueDataFrameModel.c_serie_type_code
 
     df = active_energy_cons_model_to_import.df.copy()
-    df.loc[2, [c_serie_type_code, c_ean]] = ['invalid', 123456]
+    df.loc[2, c_serie_type_code] = 'invalid'
+    df.loc[2, c_ean] = 123456
     df.loc[4, c_serie_type_code] = 'test'
     ean_codes = (str(df.loc[2, c_ean]), str(df.loc[4, c_ean]))
 
