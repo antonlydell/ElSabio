@@ -7,6 +7,7 @@ r"""Fixtures for testing the Tariff Analyzer command (`ta`) of the ElSabio CLI."
 
 # Standard library
 import re
+from datetime import date
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -870,3 +871,246 @@ def filename_with_timestamp_pattern_regex() -> re.Pattern:
     """
 
     return re.compile(r'^\d{4}-\d{2}-\d{2}T\d{2}\.\d{2}\.\d{2}[+-]\d{4}_[\w\.]*$')
+
+
+# =================================================================================================
+# Tariff calculations
+# =================================================================================================
+
+
+@pytest.fixture
+def config_calc_tariff(
+    tmp_path: Path, empty_sqlite_db: tuple[SessionFactory, URL]
+) -> ConfigManager:
+    r"""The configuration of the tariff calculations.
+
+    Returns
+    -------
+    cm : elsabio.config.ConfigManager
+        The configuration to use for the tariff calculations.
+    """
+
+    _, db_url = empty_sqlite_db
+
+    data_dir = tmp_path / 'data'
+    data_dir.mkdir()
+
+    config = {
+        'database': {'url': db_url},
+        'bwp': {'public_key': 'bwp_public_key', 'private_key': 'bwp_private_key'},
+        'tariff_analyzer': {'data_dir': data_dir},
+    }
+
+    return ConfigManager.model_validate(config)
+
+
+@pytest.fixture
+def write_imported_meter_data_files(
+    config_calc_tariff: ConfigManager,
+    active_energy_cons_model: SerieValueDataFrameModel,
+    active_energy_prod_model: SerieValueDataFrameModel,
+    max_reactive_power_cons_model: SerieValueDataFrameModel,
+    max_deb_active_power_cons_high_load_model: SerieValueDataFrameModel,
+    max_active_power_cons_model: SerieValueDataFrameModel,
+) -> Path:
+    r"""Write the imported meter data files needed for the tariff calculations.
+
+    Returns
+    -------
+    meter_data_dir : pathlib.Path
+        The path to the meter data directory where the files are located.
+    """
+
+    meter_data_dir = config_calc_tariff.tariff_analyzer.data_dir / 'meter_data'
+    partition_by = [SerieValueDataFrameModel.c_serie_type_code, SerieValueDataFrameModel.c_date_id]
+
+    models = (
+        active_energy_cons_model,
+        active_energy_prod_model,
+        max_deb_active_power_cons_high_load_model,
+        max_reactive_power_cons_model,
+        max_active_power_cons_model,
+    )
+
+    for m in models:
+        rel = duckdb.from_df(m.df)
+        rel.to_parquet(str(meter_data_dir), partition_by=partition_by, overwrite=True)
+
+    return meter_data_dir
+
+
+@pytest.fixture
+def write_calculated_tariff_value_files(
+    config_calc_tariff: ConfigManager,
+    tariff_value_facility_model: TariffValueFacilityDataFrameModel,
+    tariff_value_total_model: TariffValueTotalDataFrameModel,
+) -> tuple[Path, Path]:
+    r"""Write the parquet files with the calculated tariff values.
+
+    Useful for testing overwriting tariff value files that already exist
+    in the target location.
+
+    Returns
+    -------
+    tariff_value_facility_dir : pathlib.Path
+        The path to the directory where the existing tariff value per facility files are located.
+
+    tariff_value_total_dir : pathlib.Path
+        The path to the directory where the existing tariff value total files are located.
+    """
+
+    cfg = config_calc_tariff.tariff_analyzer
+
+    data = (
+        (
+            tariff_value_facility_model,
+            cfg.tariff_value_facility_dir,
+            TariffValueFacilityDataFrameModel.c_total_value,
+            [
+                TariffValueFacilityDataFrameModel.c_tariff_id,
+                TariffValueFacilityDataFrameModel.c_date_id,
+            ],
+        ),
+        (
+            tariff_value_total_model,
+            cfg.tariff_value_total_dir,
+            TariffValueTotalDataFrameModel.c_total_value,
+            [
+                TariffValueTotalDataFrameModel.c_tariff_id,
+                TariffValueTotalDataFrameModel.c_date_id,
+            ],
+        ),
+    )
+
+    for d in data:
+        model, path, change_col, partition_by = d
+
+        df = model.df.copy()
+        df.loc[:, change_col] = 0
+        duckdb.from_df(df).to_parquet(
+            file_name=str(path), partition_by=partition_by, overwrite=True
+        )
+
+    return cfg.tariff_value_facility_dir, cfg.tariff_value_total_dir
+
+
+@pytest.fixture
+def tariff_calculation_data_with_errors(
+    write_imported_meter_data_files: Path,
+    sqlite_db_with_tariffs: SessionFactory,
+    max_deb_active_power_cons_high_load_model: SerieValueDataFrameModel,
+) -> tuple[int, int]:
+    r"""Prepare tariff calculation data that will yield invalid results.
+
+    Facility (facility_id = 4) has no subscribed power for 2025-10-01
+    and facility (facility_id = 5) has no meter data for serie type
+    "max_deb_active_power_cons_high_load".
+
+    Returns
+    -------
+    facility_id_4 : int
+        The first facility with calculation errors (facility_id = 4).
+
+    facility_id_5 : int
+        The second facility with calculation errors (facility_id = 5).
+    """
+
+    facility_id_4 = 4
+    facility_id_5 = 5
+
+    with sqlite_db_with_tariffs() as session:
+        f = session.get(FacilityContract, (facility_id_4, date(2025, 10, 1)))
+
+        assert f is not None, (
+            f'facility_contract (facility_id={facility_id_4}, date_id=2025-10-01) not found in database!'
+        )
+        f.subscribed_power = None
+        session.commit()
+
+    df_max_deb = max_deb_active_power_cons_high_load_model.df.copy()
+    df_max_deb = df_max_deb.loc[
+        df_max_deb[SerieValueDataFrameModel.c_facility_id].ne(facility_id_5), :
+    ]
+    partition_by = [SerieValueDataFrameModel.c_serie_type_code, SerieValueDataFrameModel.c_date_id]
+
+    rel = duckdb.from_df(df_max_deb)
+    rel.to_parquet(str(write_imported_meter_data_files), partition_by=partition_by, overwrite=True)
+
+    return facility_id_4, facility_id_5
+
+
+@pytest.fixture
+def tariff_value_facility_error_dataframe() -> pd.DataFrame:
+    r"""The DataFrame with facilities with errors during tariff calculations.
+
+    The expected result after running the calculations with fixture
+    `tariff_calculation_data_with_errors`.
+
+    Returns
+    -------
+    df_error : pandas.DataFrame
+        The DataFrame with the expected error content.
+    """
+
+    file = (
+        STATIC_FILES_TARIFF_ANALYZER_BASE_DIR
+        / '2025-10_2025-11_tariff_value_facility_error_dataframe.csv'
+    )
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    return pd.read_csv(file, sep=';')
+
+
+@pytest.fixture(scope='session')
+def tariff_value_facility_model_with_errors() -> TariffValueFacilityDataFrameModel:
+    r"""The calculated tariff value result per facility with errors.
+
+    The expected result after running the calculations with fixture
+    `tariff_calculation_data_with_errors`.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.TariffValueFacilityDataFrameModel
+        The DataFrame model of the tariff value result per facility.
+    """
+
+    file = (
+        STATIC_FILES_TARIFF_ANALYZER_BASE_DIR
+        / '2025-10_2025-11_tariff_value_facility_with_errors.csv'
+    )
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    df = (
+        duckdb.read_csv(str(file), sep=';')
+        .select('* EXCLUDE(ean, description)')
+        .df(date_as_object=True)
+        .astype(TariffValueFacilityDataFrameModel.dtypes)
+    )
+
+    return TariffValueFacilityDataFrameModel(df=df)
+
+
+@pytest.fixture(scope='session')
+def tariff_value_total_model_with_errors() -> TariffValueTotalDataFrameModel:
+    r"""The calculated total tariff value result with errors.
+
+    The expected result after running the calculations with fixture
+    `tariff_calculation_data_with_errors`.
+
+    Returns
+    -------
+    elsabio.models.tariff_analyzer.TariffValueTotalDataFrameModel
+        The DataFrame model of the total tariff value result.
+    """
+
+    file = (
+        STATIC_FILES_TARIFF_ANALYZER_BASE_DIR / '2025-10_2025-11_tariff_value_total_with_errors.csv'
+    )
+    assert file.exists(), f'File "{file}" does not exist!'
+
+    df = (
+        duckdb.read_csv(str(file), sep=';')
+        .df(date_as_object=True)
+        .astype(TariffValueTotalDataFrameModel.dtypes)
+    )
+    return TariffValueTotalDataFrameModel(df=df)

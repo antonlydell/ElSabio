@@ -13,6 +13,7 @@ from .calc import (
     load_meter_data,
     write_tariff_value_calc_result_to_parquet,
 )
+from .run import TariffCalcRunOutcome, run_tariff_calc
 
 # The Public API
 __all__ = [
@@ -22,4 +23,7 @@ __all__ = [
     'get_serie_types',
     'load_meter_data',
     'write_tariff_value_calc_result_to_parquet',
+    # run
+    'TariffCalcRunOutcome',
+    'run_tariff_calc',
 ]
