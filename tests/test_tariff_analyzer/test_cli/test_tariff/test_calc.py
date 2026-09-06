@@ -7,11 +7,9 @@ r"""Unit tests for the module `cli.tariff_analyzer.tariff.calc`"""
 
 # Standard library
 from datetime import datetime
-from typing import ClassVar
 from unittest.mock import Mock
 
 # Third party
-import duckdb
 import pandas as pd
 import pytest
 from click.testing import CliRunner
@@ -25,6 +23,7 @@ from elsabio.models.tariff_analyzer import (
     TariffValueFacilityDataFrameModel,
     TariffValueTotalDataFrameModel,
 )
+from tests.test_tariff_analyzer.helpers.tariff_value import assert_tariff_value_written
 
 # =================================================================================================
 # Fixtures
@@ -56,23 +55,6 @@ def mocked_load_config(
     return config_calc_tariff, m
 
 
-def load_tariff_value_result(pattern: str) -> pd.DataFrame:
-    r"""Helper function to load the tariff value result.
-
-    Parameters
-    ----------
-    pattern : str
-        The file path glob pattern to apply when loading the tariff value result parquet files.
-
-    Returns
-    -------
-    pandas.DataFrame
-        The loaded tariff value result.
-    """
-
-    return duckdb.read_parquet(file_glob=pattern, hive_partitioning=True).to_df(date_as_object=True)
-
-
 # =================================================================================================
 # Tests
 # =================================================================================================
@@ -81,25 +63,6 @@ def load_tariff_value_result(pattern: str) -> pd.DataFrame:
 @pytest.mark.usefixtures('mocked_load_config')
 class TestTariffCalcCommand:
     r"""Tests for CLI command `elsabio ta tariff calc`."""
-
-    facility_sort_cols_by: ClassVar[list[str]] = [
-        TariffValueFacilityDataFrameModel.c_tariff_id,
-        TariffValueFacilityDataFrameModel.c_date_id,
-        TariffValueFacilityDataFrameModel.c_tariff_component_type_id,
-        TariffValueFacilityDataFrameModel.c_tariff_cost_group_id,
-        TariffValueFacilityDataFrameModel.c_customer_group_id,
-        TariffValueFacilityDataFrameModel.c_facility_id,
-    ]
-    total_sort_cols_by: ClassVar[list[str]] = [
-        TariffValueTotalDataFrameModel.c_tariff_id,
-        TariffValueTotalDataFrameModel.c_date_id,
-        TariffValueTotalDataFrameModel.c_tariff_component_type_id,
-        TariffValueTotalDataFrameModel.c_tariff_cost_group_id,
-        TariffValueTotalDataFrameModel.c_customer_group_id,
-        TariffValueTotalDataFrameModel.c_tariff_component_id,
-    ]
-    facility_index_col: ClassVar[str] = TariffValueFacilityDataFrameModel.c_facility_id
-    total_index_col: ClassVar[str] = TariffValueTotalDataFrameModel.c_tariff_id
 
     @pytest.mark.usefixtures('write_imported_meter_data_files', 'sqlite_db_with_tariffs')
     @pytest.mark.parametrize(
@@ -146,18 +109,6 @@ class TestTariffCalcCommand:
 
         cfg = config_calc_tariff.tariff_analyzer
 
-        df_facility_exp = tariff_value_facility_model.df
-        facility_cols_exp = df_facility_exp.columns.to_list()
-        df_facility_exp = df_facility_exp.sort_values(self.facility_sort_cols_by).set_index(
-            self.facility_index_col
-        )
-
-        df_total_exp = tariff_value_total_model.df
-        exp_total_cols = df_total_exp.columns.to_list()
-        df_total_exp = df_total_exp.sort_values(self.total_sort_cols_by).set_index(
-            self.total_index_col
-        )
-
         runner = CliRunner()
 
         # Exercise
@@ -180,38 +131,11 @@ class TestTariffCalcCommand:
             f'Found files in error directory: "{cfg.tariff_value_error_dir}"!'
         )
 
-        validation_set = (
-            (
-                'facility',
-                cfg.tariff_value_facility_dir,
-                facility_cols_exp,
-                self.facility_sort_cols_by,
-                self.facility_index_col,
-                df_facility_exp,
-            ),
-            (
-                'total',
-                cfg.tariff_value_total_dir,
-                exp_total_cols,
-                self.total_sort_cols_by,
-                self.total_index_col,
-                df_total_exp,
-            ),
+        assert_tariff_value_written(
+            cfg=cfg,
+            df_facility_exp=tariff_value_facility_model.df,
+            df_total_exp=tariff_value_total_model.df,
         )
-        for value in validation_set:
-            value_type, path, exp_cols, sort_by_cols, index_col, df_exp = value
-
-            df = load_tariff_value_result(pattern=str(path / '*' / '*' / '*.parquet'))
-
-            missing_cols = set(exp_cols).difference(df.columns)
-            assert not missing_cols, (
-                f'Missing columns in tariff value {value_type} dataset : {missing_cols}'
-            )
-
-            df = df.loc[:, exp_cols].sort_values(sort_by_cols).set_index(index_col)
-
-            print(f'assert {value_type=}')
-            assert_frame_equal(df, df_exp, check_dtype=False, check_index_type=False)
 
         # Clean up - None
         # ===========================================================
@@ -237,18 +161,10 @@ class TestTariffCalcCommand:
             tariff_id
         )
         df_facility_exp = df_facility_exp.loc[filter_by_tariff_id, :]
-        facility_cols_exp = df_facility_exp.columns.to_list()
-        df_facility_exp = df_facility_exp.sort_values(self.facility_sort_cols_by).set_index(
-            self.facility_index_col
-        )
 
         df_total_exp = tariff_value_total_model.df
         filter_by_tariff_id = df_total_exp[TariffValueTotalDataFrameModel.c_tariff_id].eq(tariff_id)
         df_total_exp = df_total_exp.loc[filter_by_tariff_id, :]
-        total_cols_exp = df_total_exp.columns.to_list()
-        df_total_exp = df_total_exp.sort_values(self.total_sort_cols_by).set_index(
-            self.total_index_col
-        )
 
         runner = CliRunner()
         args = [
@@ -281,38 +197,11 @@ class TestTariffCalcCommand:
             f'Found files in error directory: "{cfg.tariff_value_error_dir}"!'
         )
 
-        validation_set = (
-            (
-                'facility',
-                cfg.tariff_value_facility_dir,
-                facility_cols_exp,
-                self.facility_sort_cols_by,
-                self.facility_index_col,
-                df_facility_exp,
-            ),
-            (
-                'total',
-                cfg.tariff_value_total_dir,
-                total_cols_exp,
-                self.total_sort_cols_by,
-                self.total_index_col,
-                df_total_exp,
-            ),
+        assert_tariff_value_written(
+            cfg=cfg,
+            df_facility_exp=df_facility_exp,
+            df_total_exp=df_total_exp,
         )
-        for value in validation_set:
-            value_type, path, exp_cols, sort_by_cols, index_col, df_exp = value
-
-            df = load_tariff_value_result(pattern=str(path / '*' / '*' / '*.parquet'))
-
-            missing_cols = set(exp_cols).difference(df.columns)
-            assert not missing_cols, (
-                f'Missing columns in tariff value {value_type} dataset : {missing_cols}'
-            )
-
-            df = df.loc[:, exp_cols].sort_values(sort_by_cols).set_index(index_col)
-
-            print(f'assert {value_type=}')
-            assert_frame_equal(df, df_exp, check_dtype=False, check_index_type=False)
 
         # Clean up - None
         # ===========================================================
@@ -342,16 +231,7 @@ class TestTariffCalcCommand:
         )
 
         df_facility_exp = tariff_value_facility_model_with_errors.df
-        facility_cols_exp = df_facility_exp.columns.to_list()
-        df_facility_exp = df_facility_exp.sort_values(self.facility_sort_cols_by).set_index(
-            self.facility_index_col
-        )
-
         df_total_exp = tariff_value_total_model_with_errors.df
-        exp_total_cols = df_total_exp.columns.to_list()
-        df_total_exp = df_total_exp.sort_values(self.total_sort_cols_by).set_index(
-            self.total_index_col
-        )
 
         runner = CliRunner()
         args = ['ta', 'tariff', 'calc', '-i', '2025-10-01..2025-12-01']
@@ -376,38 +256,11 @@ class TestTariffCalcCommand:
         print('assert df_error')
         assert_frame_equal(df_error, tariff_value_facility_error_dataframe)
 
-        validation_set = (
-            (
-                'facility',
-                cfg.tariff_value_facility_dir,
-                facility_cols_exp,
-                self.facility_sort_cols_by,
-                self.facility_index_col,
-                df_facility_exp,
-            ),
-            (
-                'total',
-                cfg.tariff_value_total_dir,
-                exp_total_cols,
-                self.total_sort_cols_by,
-                self.total_index_col,
-                df_total_exp,
-            ),
+        assert_tariff_value_written(
+            cfg=cfg,
+            df_facility_exp=df_facility_exp,
+            df_total_exp=df_total_exp,
         )
-        for value in validation_set:
-            value_type, path, exp_cols, sort_by_cols, index_col, df_exp = value
-
-            df = load_tariff_value_result(pattern=str(path / '*' / '*' / '*.parquet'))
-
-            missing_cols = set(exp_cols).difference(df.columns)
-            assert not missing_cols, (
-                f'Missing columns in tariff value {value_type} dataset : {missing_cols}'
-            )
-
-            df = df.loc[:, exp_cols].sort_values(sort_by_cols).set_index(index_col)
-
-            print(f'assert {value_type=}')
-            assert_frame_equal(df, df_exp, check_dtype=False, check_index_type=False)
 
         # Clean up - None
         # ===========================================================

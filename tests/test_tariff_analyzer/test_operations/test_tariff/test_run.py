@@ -7,10 +7,8 @@ r"""Unit tests for the module `operations.tariff_analyzer.tariff.run`"""
 
 # Standard library
 from datetime import date, datetime
-from typing import ClassVar
 
 # Third party
-import duckdb
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
@@ -23,28 +21,7 @@ from elsabio.models.tariff_analyzer import (
     TariffValueTotalDataFrameModel,
 )
 from elsabio.operations.tariff_analyzer.tariff import run_tariff_calc
-
-# =================================================================================================
-# Helpers
-# =================================================================================================
-
-
-def load_tariff_value_result(pattern: str) -> pd.DataFrame:
-    r"""Helper function to load the tariff value result.
-
-    Parameters
-    ----------
-    pattern : str
-        The file path glob pattern to apply when loading the tariff value result parquet files.
-
-    Returns
-    -------
-    pandas.DataFrame
-        The loaded tariff value result.
-    """
-
-    return duckdb.read_parquet(file_glob=pattern, hive_partitioning=True).to_df(date_as_object=True)
-
+from tests.test_tariff_analyzer.helpers.tariff_value import assert_tariff_value_written
 
 # =================================================================================================
 # Tests
@@ -53,81 +30,6 @@ def load_tariff_value_result(pattern: str) -> pd.DataFrame:
 
 class TestRunTariffCalc:
     r"""Tests for the operation `run_tariff_calc`."""
-
-    facility_sort_cols_by: ClassVar[list[str]] = [
-        TariffValueFacilityDataFrameModel.c_tariff_id,
-        TariffValueFacilityDataFrameModel.c_date_id,
-        TariffValueFacilityDataFrameModel.c_tariff_component_type_id,
-        TariffValueFacilityDataFrameModel.c_tariff_cost_group_id,
-        TariffValueFacilityDataFrameModel.c_customer_group_id,
-        TariffValueFacilityDataFrameModel.c_facility_id,
-    ]
-    total_sort_cols_by: ClassVar[list[str]] = [
-        TariffValueTotalDataFrameModel.c_tariff_id,
-        TariffValueTotalDataFrameModel.c_date_id,
-        TariffValueTotalDataFrameModel.c_tariff_component_type_id,
-        TariffValueTotalDataFrameModel.c_tariff_cost_group_id,
-        TariffValueTotalDataFrameModel.c_customer_group_id,
-        TariffValueTotalDataFrameModel.c_tariff_component_id,
-    ]
-    facility_index_col: ClassVar[str] = TariffValueFacilityDataFrameModel.c_facility_id
-    total_index_col: ClassVar[str] = TariffValueTotalDataFrameModel.c_tariff_id
-
-    def assert_tariff_value_written(
-        self,
-        config: ConfigManager,
-        df_facility_exp: pd.DataFrame,
-        df_total_exp: pd.DataFrame,
-    ) -> None:
-        r"""Assert that the expected tariff value result was written to the parquet store.
-
-        Parameters
-        ----------
-        config : elsabio.config.ConfigManager
-            The configuration used for the tariff calculations.
-
-        df_facility_exp : pandas.DataFrame
-            The expected tariff value result per facility.
-
-        df_total_exp : pandas.DataFrame
-            The expected total tariff value result.
-        """
-
-        cfg = config.tariff_analyzer
-
-        validation_set = (
-            (
-                'facility',
-                cfg.tariff_value_facility_dir,
-                self.facility_sort_cols_by,
-                self.facility_index_col,
-                df_facility_exp,
-            ),
-            (
-                'total',
-                cfg.tariff_value_total_dir,
-                self.total_sort_cols_by,
-                self.total_index_col,
-                df_total_exp,
-            ),
-        )
-        for value in validation_set:
-            value_type, path, sort_by_cols, index_col, df_exp = value
-
-            exp_cols = df_exp.columns.to_list()
-            df_exp = df_exp.sort_values(sort_by_cols).set_index(index_col)
-
-            df = load_tariff_value_result(pattern=str(path / '*' / '*' / '*.parquet'))
-
-            missing_cols = set(exp_cols).difference(df.columns)
-            assert not missing_cols, (
-                f'Missing columns in tariff value {value_type} dataset : {missing_cols}'
-            )
-
-            df = df.loc[:, exp_cols].sort_values(sort_by_cols).set_index(index_col)
-
-            print(f'assert {value_type=}')
-            assert_frame_equal(df, df_exp, check_dtype=False, check_index_type=False)
 
     @pytest.mark.usefixtures('write_imported_meter_data_files')
     def test_calculate_all_tariffs(
@@ -165,8 +67,8 @@ class TestRunTariffCalc:
             f'Found files in error directory: "{cfg.tariff_value_error_dir}"!'
         )
 
-        self.assert_tariff_value_written(
-            config=config_calc_tariff,
+        assert_tariff_value_written(
+            cfg=cfg,
             df_facility_exp=tariff_value_facility_model.df,
             df_total_exp=tariff_value_total_model.df,
         )
@@ -215,8 +117,8 @@ class TestRunTariffCalc:
         assert outcome.tariff_ids == (tariff_id,), 'Incorrect tariff_ids in outcome!'
         assert outcome.completed, 'outcome.completed is False!'
 
-        self.assert_tariff_value_written(
-            config=config_calc_tariff,
+        assert_tariff_value_written(
+            cfg=cfg,
             df_facility_exp=df_facility_exp,
             df_total_exp=df_total_exp,
         )
@@ -280,8 +182,8 @@ class TestRunTariffCalc:
         assert outcome.df_invalid is not None, 'outcome.df_invalid is None!'
         assert not outcome.df_invalid.empty, 'outcome.df_invalid is empty!'
 
-        self.assert_tariff_value_written(
-            config=config_calc_tariff,
+        assert_tariff_value_written(
+            cfg=cfg,
             df_facility_exp=tariff_value_facility_model_with_errors.df,
             df_total_exp=tariff_value_total_model_with_errors.df,
         )
