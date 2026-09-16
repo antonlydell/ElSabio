@@ -11,7 +11,7 @@ from collections.abc import Sequence
 from datetime import date
 
 # Third party
-from sqlalchemy import and_, case, extract, or_, select
+from sqlalchemy import and_, case, extract, func, or_, select
 from sqlalchemy.orm import aliased
 
 # Local
@@ -21,7 +21,7 @@ from elsabio.database.core import (
     SQLAlchemyError,
     load_sql_query_as_dataframe,
 )
-from elsabio.database.models.core import SerieType
+from elsabio.database.models.core import Currency, SerieType
 from elsabio.database.models.tariff_analyzer import (
     CalcStrategy,
     CustomerGroup,
@@ -37,6 +37,7 @@ from elsabio.database.models.tariff_analyzer import (
 )
 from elsabio.models.tariff_analyzer import (
     TariffCalculationDataFrameModel,
+    TariffDataFrameModel,
 )
 
 logger = logging.getLogger(__name__)
@@ -97,6 +98,53 @@ def load_tariff_ids(
             )
 
     return tuple(loaded_tariff_ids), result
+
+
+def load_tariff_model(session: Session) -> tuple[TariffDataFrameModel, OperationResult]:
+    r"""Load the tariffs available to work with.
+
+    The tariffs are loaded with the reference data needed to tell them apart by name
+    rather than by ID: the currency, the validity period and when a tariff was last
+    edited. The tariffs are ordered by name.
+
+    Parameters
+    ----------
+    session : elsabio.db.Session
+        An active database session.
+
+    Returns
+    -------
+    model : elsabio.models.tariff_analyzer.TariffDataFrameModel
+        The dataset of the tariffs.
+
+    result : elsabio.core.OperationResult
+        The result of loading the tariffs from the database.
+    """
+
+    last_edited_at = func.coalesce(Tariff.updated_at, Tariff.created_at)
+
+    query = (
+        select(
+            Tariff.tariff_id.label(TariffDataFrameModel.c_tariff_id),
+            Tariff.name.label(TariffDataFrameModel.c_name),
+            Currency.iso_code.label(TariffDataFrameModel.c_currency_iso_code),
+            Tariff.validity_start.label(TariffDataFrameModel.c_validity_start),
+            Tariff.validity_end.label(TariffDataFrameModel.c_validity_end),
+            last_edited_at.label(TariffDataFrameModel.c_last_edited_at),
+        )
+        .join(Tariff.currency)
+        .order_by(Tariff.name.asc())
+    )
+
+    df, result = load_sql_query_as_dataframe(
+        query=query,
+        session=session,
+        dtypes=TariffDataFrameModel.dtypes,
+        parse_dates=TariffDataFrameModel.parse_dates,
+        error_msg='Error loading tariffs from the database!',
+    )
+
+    return TariffDataFrameModel(df=df), result
 
 
 def load_tariff_calculation_model(

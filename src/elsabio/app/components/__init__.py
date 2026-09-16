@@ -12,6 +12,8 @@ from elsabio.app.components.forms import (
     bitwarden_register_form_existing_user,
 )
 from elsabio.app.components.icons import ICON_ERROR, ICON_INFO, ICON_SUCCESS, ICON_WARNING
+from elsabio.app.components.messages import operation_error
+from elsabio.app.components.selectors import id_by_name, select_by_name
 from elsabio.app.components.sidebar import sidebar
 from elsabio.app.components.text import user_info_text
 
@@ -28,6 +30,11 @@ __all__ = [
     'ICON_INFO',
     'ICON_SUCCESS',
     'ICON_WARNING',
+    # messages
+    'operation_error',
+    # selectors
+    'id_by_name',
+    'select_by_name',
     # sidebar
     'sidebar',
     # text

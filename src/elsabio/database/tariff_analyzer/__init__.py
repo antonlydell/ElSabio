@@ -25,6 +25,7 @@ from .crud import (
     load_product_mapping_model,
     load_tariff_calculation_model,
     load_tariff_ids,
+    load_tariff_model,
 )
 
 # The Public API
@@ -48,4 +49,5 @@ __all__ = [
     'load_product_mapping_model',
     'load_tariff_calculation_model',
     'load_tariff_ids',
+    'load_tariff_model',
 ]
