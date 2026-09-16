@@ -15,3 +15,4 @@ class Pages(StrEnum):
     INIT = '_pages/init.py'
     HOME = '_pages/home.py'
     SIGN_IN = '_pages/sign_in.py'
+    TARIFF_DESIGN = '_pages/tariff_analyzer/tariff_design.py'

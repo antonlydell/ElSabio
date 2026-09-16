@@ -93,6 +93,51 @@ class PeriodizeStrategyEnum(StrEnum):
     PER_YEAR_PERIODIZE_OVER_MONTH_LENGTH = 'per_year_periodize_over_month_length'
 
 
+class TariffDataFrameModel(BaseDataFrameModel):
+    r"""The tariffs available to work with, presented by name rather than by ID.
+
+    Parameters
+    ----------
+    tariff_id : int
+        The unique ID of the tariff.
+
+    name : str
+        The unique name of the tariff.
+
+    currency_iso_code : str
+        The ISO code of the currency of the tariff. E.g. SEK.
+
+    validity_start : datetime.date or None
+        The start date the tariff is valid from (inclusive)
+        in the configured business timezone of the app.
+
+    validity_end : datetime.date or None
+        The end date the tariff is valid until (exclusive)
+        in the configured business timezone of the app.
+
+    last_edited_at : datetime.datetime
+        The timestamp at which the tariff itself was last edited (UTC). The timestamp of
+        the latest update of the tariff and the timestamp of its creation if it has never
+        been updated. It does not yet cover the cost groups, the palette and the components
+        that belong to the tariff.
+    """
+
+    c_tariff_id: ClassVar[str] = 'tariff_id'
+    c_name: ClassVar[str] = 'name'
+    c_currency_iso_code: ClassVar[str] = 'currency_iso_code'
+    c_validity_start: ClassVar[str] = 'validity_start'
+    c_validity_end: ClassVar[str] = 'validity_end'
+    c_last_edited_at: ClassVar[str] = 'last_edited_at'
+
+    dtypes: ClassVar[DtypeMapping] = {
+        c_tariff_id: 'uint16[pyarrow]',
+        c_name: 'string[pyarrow]',
+        c_currency_iso_code: 'string[pyarrow]',
+    }
+
+    parse_dates: ClassVar[list[str]] = [c_validity_start, c_validity_end, c_last_edited_at]
+
+
 class TariffCalculationDataFrameModel(BaseDataFrameModel):
     r"""The model of the input dataset to the tariff calculations.
 

@@ -13,7 +13,7 @@ import streamlit as st
 
 # Local
 from elsabio.app._pages import Pages
-from elsabio.app.auth import authenticated
+from elsabio.app.auth import SuperUserRole, authenticated
 from elsabio.app.components import sidebar
 
 APP_PATH = Path(__file__)
@@ -24,10 +24,12 @@ def main() -> None:
 
     is_authenticated, user = authenticated()
 
-    pages = [
-        st.Page(page=Pages.HOME, title='Home', icon='🏡'),
-        st.Page(page=Pages.SIGN_IN, title='Sign in', icon='🔑', default=True),
-    ]
+    pages = [st.Page(page=Pages.HOME, title='Home', icon='🏡')]
+
+    if user is not None and user.is_authorized(role=SuperUserRole):
+        pages.append(st.Page(page=Pages.TARIFF_DESIGN, title='Tariff Design', icon='🧾'))
+
+    pages.append(st.Page(page=Pages.SIGN_IN, title='Sign in', icon='🔑', default=True))
     page = st.navigation(pages, position='top' if is_authenticated else 'hidden')
 
     sidebar(is_authenticated=is_authenticated, user=user)

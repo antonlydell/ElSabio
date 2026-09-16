@@ -47,6 +47,7 @@ from .tariff import (
     PeriodizeStrategyEnum,
     TariffCalculationDataFrameModel,
     TariffCalculationExtendedDataFrameModel,
+    TariffDataFrameModel,
     TariffValueFacilityDataFrameModel,
     TariffValueTotalDataFrameModel,
 )
@@ -92,6 +93,7 @@ __all__ = [
     'PeriodizeStrategyEnum',
     'TariffCalculationDataFrameModel',
     'TariffCalculationExtendedDataFrameModel',
+    'TariffDataFrameModel',
     'TariffValueFacilityDataFrameModel',
     'TariffValueTotalDataFrameModel',
 ]
