@@ -60,7 +60,7 @@ def _load_tariff_value_result(pattern: str) -> pd.DataFrame:
         The loaded tariff value result.
     """
 
-    return duckdb.read_parquet(file_glob=pattern, hive_partitioning=True).to_df(date_as_object=True)
+    return duckdb.read_parquet(pattern, hive_partitioning=True).to_df(date_as_object=True)
 
 
 def assert_tariff_value_written(

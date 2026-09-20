@@ -310,7 +310,7 @@ class TestTariffAnalyzerImportFacilityContractCommand:
 
         return (
             duckdb.read_parquet(
-                file_glob=f'{path}/*.parquet',
+                f'{path}/*.parquet',
                 hive_partitioning=True,
             )
             .to_df(date_as_object=True)
