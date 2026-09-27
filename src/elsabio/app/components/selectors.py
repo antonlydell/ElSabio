@@ -77,7 +77,7 @@ def select_by_name(
 
     binding = bind_query_param(options=options, query_param=query_param, parse=int)
 
-    if binding.unknown and not_found_msg is not None:
+    if binding.selection.unknown and not_found_msg is not None:
         st.warning(not_found_msg, icon=ICON_WARNING)
 
     st.selectbox(
@@ -88,4 +88,4 @@ def select_by_name(
         on_change=binding.on_change,
     )
 
-    return binding.selection()
+    return binding.selection

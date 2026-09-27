@@ -317,4 +317,4 @@ def tariff_tabs() -> TariffDesignTab:
             with container:
                 st.info(f'{tab.description} Not built yet.', icon=ICON_INFO)
 
-    return binding.selection().value
+    return binding.selection.value
