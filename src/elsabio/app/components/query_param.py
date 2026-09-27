@@ -129,7 +129,7 @@ def bind_query_param[T](
 
     parse : Callable[[str], T]
         The function that parses the value of `query_param` into the value of an option,
-        e.g. ``int`` or a lookup of an enum member. It should raise :exc:`ValueError` if
+        e.g. ``int`` or an enum class. It should raise :exc:`ValueError` if
         the value cannot be parsed.
 
     Returns
@@ -138,23 +138,18 @@ def bind_query_param[T](
         The binding to render the component with.
     """
 
-    value, unknown = resolve_query_param(
+    selection = _resolve_query_param(
         param_value=get_query_param(query_param), values=tuple(options.values()), parse=parse
     )
-    label = next(label for label, option in options.items() if option == value)
+    label = next(label for label, option in options.items() if option == selection.value)
     key = f'query-param-{query_param}'
 
     if st.session_state.get(key) != label:
         st.session_state[key] = label
 
-    _write_to_address(query_param=query_param, value=value)
+    _write_to_address(query_param=query_param, value=selection.value)
 
-    return QueryParamBinding(
-        options=options,
-        query_param=query_param,
-        key=key,
-        selection=Selection(value=value, unknown=unknown),
-    )
+    return QueryParamBinding(options=options, query_param=query_param, key=key, selection=selection)
 
 
 def _write_to_address(query_param: QueryParam, value: object) -> None:
@@ -176,9 +171,9 @@ def _write_to_address(query_param: QueryParam, value: object) -> None:
         set_query_param(query_param, param_value)
 
 
-def resolve_query_param[T](
+def _resolve_query_param[T](
     param_value: str | None, values: Sequence[T], parse: Callable[[str], T]
-) -> tuple[T, bool]:
+) -> Selection[T]:
     r"""Resolve the value of a query parameter to one of the values of the options.
 
     A missing or empty value is no choice and resolves to the first value. A value that
@@ -198,32 +193,32 @@ def resolve_query_param[T](
 
     Returns
     -------
-    value : T
-        The resolved value.
-
-    unknown : bool
-        True if `param_value` could not be resolved to any of `values`.
+    elsabio.app.components.Selection[T]
+        The resolved value and if `param_value` could not be resolved to any of `values`.
 
     Examples
     --------
-    >>> resolve_query_param(param_value='02', values=[1, 2], parse=int)
-    (2, False)
-    >>> resolve_query_param(param_value='999', values=[1, 2], parse=int)
-    (1, True)
-    >>> resolve_query_param(param_value='abc', values=[1, 2], parse=int)
-    (1, True)
-    >>> resolve_query_param(param_value='', values=[1, 2], parse=int)
-    (1, False)
+    >>> _resolve_query_param(param_value='02', values=[1, 2], parse=int)
+    Selection(value=2, unknown=False)
+    >>> _resolve_query_param(param_value='999', values=[1, 2], parse=int)
+    Selection(value=1, unknown=True)
+    >>> _resolve_query_param(param_value='abc', values=[1, 2], parse=int)
+    Selection(value=1, unknown=True)
+    >>> _resolve_query_param(param_value='', values=[1, 2], parse=int)
+    Selection(value=1, unknown=False)
     """
 
     first = values[0]
 
     if not param_value:
-        return first, False
+        return Selection(value=first, unknown=False)
 
     try:
         value = parse(param_value)
     except ValueError:
-        return first, True
+        return Selection(value=first, unknown=True)
 
-    return (value, False) if value in values else (first, True)
+    if value not in values:
+        return Selection(value=first, unknown=True)
+
+    return Selection(value=value, unknown=False)

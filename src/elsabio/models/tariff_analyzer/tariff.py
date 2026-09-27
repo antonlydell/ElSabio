@@ -114,14 +114,15 @@ class TariffDataFrameModel(BaseDataFrameModel):
     validity_end : datetime.date or None
         The end date the tariff is valid until (exclusive)
         in the configured business timezone of the app.
+        A view that shows it inclusively shifts it back one day.
 
-    last_edited_at : datetime.datetime
-        The timestamp at which the tariff itself was last edited. The timestamp of the latest
-        update of the tariff and the timestamp of its creation if it has never been updated.
-        It is loaded from the database in UTC. A view that displays it converts it to the
-        configured business timezone of the app, so the user reads it in the same frame as the
-        validity period. It does not yet cover the cost groups, the palette and the components
-        that belong to the tariff.
+    last_edited_at : pandas.Timestamp
+        The moment at which the tariff itself was last edited, as a timestamp with the timezone
+        UTC. The moment of the latest update of the tariff and the moment of its creation if it
+        has never been updated. A view that displays it converts it to the configured business
+        timezone of the app, so the user reads it in the same frame as the validity period.
+        It does not yet cover the cost groups, the palette and the components that belong to
+        the tariff.
     """
 
     c_tariff_id: ClassVar[str] = 'tariff_id'
@@ -135,6 +136,7 @@ class TariffDataFrameModel(BaseDataFrameModel):
         c_tariff_id: 'uint16[pyarrow]',
         c_name: 'string[pyarrow]',
         c_currency_iso_code: 'string[pyarrow]',
+        c_last_edited_at: 'datetime64[ns, UTC]',
     }
 
     parse_dates: ClassVar[list[str]] = [c_validity_start, c_validity_end, c_last_edited_at]

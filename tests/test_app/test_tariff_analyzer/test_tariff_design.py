@@ -7,24 +7,67 @@ r"""Wiring tests for the page `app._pages.tariff_analyzer.tariff_design`
 
 The page is reached the way a user reaches it: the app is started from its router and the page
 is selected in the navigation. A page that is not part of the navigation of the signed in user
-cannot be selected, and the router then falls back to its default page.
+cannot be selected, and the router then falls back to its default page, Sign in.
+
+The one exception is :class:`TestTariffDesignPageGuard`, which runs the page without the router of
+the app to prove the guard of the page itself.
 """
 
 # Standard library
 from datetime import datetime
+from pathlib import Path
 
 # Third party
 import pandas as pd
 import pytest
 import streamlit_passwordless as stp
+from streamlit.proto.WidgetStates_pb2 import WidgetState
 from streamlit.testing.v1 import AppTest
 
 # Local
+from elsabio.app import APP_PATH
 from elsabio.models.tariff_analyzer import TariffDataFrameModel
+from tests.test_app.conftest import APP_TEST_TIMEOUT
 
 PAGE = '_pages/tariff_analyzer/tariff_design.py'
 TITLE = 'Tariff Design'
 NOT_FOUND = 'The linked tariff could not be found'
+
+# A signed in user on Sign in is offered to register a new passkey, which no other page offers.
+SIGN_IN_MARKER = 'Register a new passkey'
+
+# A stand-in for the router of the app that offers the Tariff Design page to every user,
+# so that the guard of the page is the only thing that can refuse a user.
+ROUTER_WITHOUT_GATE = """\
+import streamlit as st
+
+from elsabio.app._pages import Pages
+
+pages = [st.Page(page=Pages.TARIFF_DESIGN, default=True), st.Page(page=Pages.SIGN_IN)]
+st.navigation(pages, position='hidden').run()
+"""
+
+
+@pytest.fixture
+def page_without_router(app: AppTest, tmp_path: Path) -> AppTest:  # noqa: ARG001
+    r"""An app test that runs the Tariff Design page without the router of the app.
+
+    The page is run from :data:`ROUTER_WITHOUT_GATE`, which does not leave the page out of the
+    navigation of any user. The pages of the app are linked next to the stand-in router, so that
+    the page and its redirect to Sign in resolve their pages as they do in the app. `app` is
+    requested for the environment of the app, i.e. its config, database and fresh modules.
+
+    Returns
+    -------
+    streamlit.testing.v1.AppTest
+        The app test of the Tariff Design page.
+    """
+
+    (tmp_path / '_pages').symlink_to(APP_PATH.parent / '_pages', target_is_directory=True)
+    router_path = tmp_path / 'router.py'
+    router_path.write_text(ROUTER_WITHOUT_GATE)
+
+    return AppTest.from_file(str(router_path), default_timeout=APP_TEST_TIMEOUT)
 
 
 def open_tariff_design(at: AppTest, user: stp.User, **query_params: str) -> AppTest:
@@ -59,6 +102,40 @@ def page_rendered(at: AppTest) -> bool:
     return TITLE in [t.value for t in at.title]
 
 
+def landed_on_sign_in(at: AppTest) -> bool:
+    r"""Check if the signed in user landed on the Sign in page."""
+
+    return any(SIGN_IN_MARKER in m.value for m in at.markdown)
+
+
+def switch_tab(at: AppTest, label: str) -> AppTest:
+    r"""Switch to the tab of the Tariff Design page with `label` the way the browser does.
+
+    AppTest cannot interact with ``st.tabs``, so the widget state that the browser sends when
+    the user opens a tab is added to the widget states of the page, which runs the change
+    callback of the tab bar in the same way as a click by the user.
+
+    Parameters
+    ----------
+    at : streamlit.testing.v1.AppTest
+        The app test of the web app after the Tariff Design page has been run.
+
+    label : str
+        The label of the tab to switch to.
+
+    Returns
+    -------
+    streamlit.testing.v1.AppTest
+        `at` after the page has been run again.
+    """
+
+    tab_bar = next(node for node in at.main if node.type == 'tab_container')
+    widget_states = at.main.root.get_widget_states()
+    widget_states.widgets.append(WidgetState(id=tab_bar.proto.tab_container.id, string_value=label))
+
+    return at._run(widget_states)
+
+
 def warning_text(at: AppTest) -> str:
     r"""Get the text of all warnings that were rendered."""
 
@@ -89,13 +166,17 @@ class TestTariffDesignPageAccess:
         assert page_rendered(at), 'The Tariff Design page was not rendered!'
 
     @pytest.mark.parametrize('fixture_name', ['user', 'viewer'])
-    def test_a_user_and_a_viewer_are_refused(
+    def test_a_user_and_a_viewer_land_on_sign_in(
         self,
         app: AppTest,
         fixture_name: str,
         request: pytest.FixtureRequest,
     ) -> None:
-        r"""Test that a User and a Viewer who open the address of the page are refused."""
+        r"""Test that a User and a Viewer who open the address of the page land on Sign in.
+
+        AppTest does not expose the entries of the navigation, so landing on Sign in, the
+        default page of the router, is the proof that the page is not among them.
+        """
 
         # Exercise
         # ===========================================================
@@ -103,7 +184,58 @@ class TestTariffDesignPageAccess:
 
         # Verify
         # ===========================================================
+        assert not at.exception, f'The page raised an exception! {at.exception}'
         assert not page_rendered(at), 'The Tariff Design page was rendered!'
+        assert landed_on_sign_in(at), 'The user did not land on Sign in!'
+
+
+class TestTariffDesignPageGuard:
+    r"""Tests of the guard of the Tariff Design page itself, without the router of the app."""
+
+    @pytest.mark.parametrize('fixture_name', ['user', 'viewer'])
+    def test_a_user_and_a_viewer_are_redirected_to_sign_in(
+        self, page_without_router: AppTest, fixture_name: str, request: pytest.FixtureRequest
+    ) -> None:
+        r"""Test that the page redirects a User and a Viewer to Sign in."""
+
+        # Setup
+        # ===========================================================
+        at = page_without_router
+        at.session_state[stp.SK_USER] = request.getfixturevalue(fixture_name)
+
+        # Exercise
+        # ===========================================================
+        at.run()
+
+        # Verify
+        # ===========================================================
+        assert not at.exception, f'The page raised an exception! {at.exception}'
+        assert not page_rendered(at), 'The Tariff Design page was rendered!'
+        assert landed_on_sign_in(at), 'The user was not redirected to Sign in!'
+
+    def test_a_superuser_gets_the_page(
+        self, page_without_router: AppTest, superuser: stp.User
+    ) -> None:
+        r"""Test that the page lets a Superuser through.
+
+        It proves that the refusal of a User and a Viewer comes from the guard of the page
+        and not from how the page is run without the router.
+        """
+
+        # Setup
+        # ===========================================================
+        at = page_without_router
+        at.session_state[stp.SK_USER] = superuser
+
+        # Exercise
+        # ===========================================================
+        at.run()
+
+        # Verify
+        # ===========================================================
+        assert not at.exception, f'The page raised an exception! {at.exception}'
+        assert page_rendered(at), 'The Tariff Design page was not rendered!'
+        assert not landed_on_sign_in(at), 'The Superuser was redirected to Sign in!'
 
 
 class TestTariffDesignPageWithoutTariffs:
@@ -263,6 +395,34 @@ class TestTariffDesignPageSelection:
         assert not at.exception, f'The page raised an exception! {at.exception}'
         assert at.selectbox[0].value == 'Tariff B', 'The selected tariff was lost!'
         assert at.query_params['tariff_id'] == ['2'], 'The address was not updated!'
+
+    def test_switching_tabs_updates_the_address(self, app: AppTest, superuser: stp.User) -> None:
+        r"""Test that switching to another tab and back carries the open tab in the address."""
+
+        # Setup
+        # ===========================================================
+        at = open_tariff_design(app, user=superuser)
+
+        # Exercise
+        # ===========================================================
+        switch_tab(at, label='Palette')
+
+        # Verify
+        # ===========================================================
+        assert not at.exception, f'The page raised an exception! {at.exception}'
+        assert at.query_params['tab'] == ['palette'], 'The address does not name the new tab!'
+
+        messages = ' '.join(i.value for i in at.info)
+        assert 'The component types that the tariff may use' in messages, 'The tab is not open!'
+
+        # Exercise
+        # ===========================================================
+        switch_tab(at, label='Details')
+
+        # Verify
+        # ===========================================================
+        assert not at.exception, f'The page raised an exception! {at.exception}'
+        assert at.query_params['tab'] == ['details'], 'The address does not name the first tab!'
 
     @pytest.mark.parametrize(
         ('query_params', 'open_tab', 'closed_tab'),

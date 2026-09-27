@@ -24,7 +24,7 @@ import streamlit as st
 # Local
 from elsabio.app.components.icons import ICON_WARNING
 from elsabio.app.components.query_param import Selection, bind_query_param
-from elsabio.app.state import QueryParam, set_query_param
+from elsabio.app.state import QueryParam
 
 
 def select_by_name(
@@ -68,11 +68,11 @@ def select_by_name(
     -------
     elsabio.app.components.Selection[int] or None
         The ID of the selected name and if the address named an unknown ID.
-        None if `options` is empty.
+        None if `options` is empty, in which case nothing is rendered and the address
+        is left as it is for the caller to decide what an empty state does to it.
     """
 
     if not options:
-        set_query_param(query_param, None)
         return None
 
     binding = bind_query_param(options=options, query_param=query_param, parse=int)

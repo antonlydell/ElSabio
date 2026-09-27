@@ -6,8 +6,9 @@
 r"""The views of the Tariff Design page."""
 
 # Standard library
+from collections.abc import Callable
 from enum import StrEnum
-from typing import Self
+from typing import Self, cast
 from zoneinfo import ZoneInfo
 
 # Third party
@@ -130,22 +131,6 @@ class TariffDesignTab(StrEnum):
     )
 
     @classmethod
-    def from_value(cls, value: str) -> Self:
-        r"""Get the tab that is carried in the address of the page as `value`.
-
-        Raises
-        ------
-        ValueError
-            If `value` names no tab.
-        """
-
-        for tab in cls:
-            if tab.value == value:
-                return tab
-
-        raise ValueError(f'"{value}" is not a tab of the Tariff Design page!')
-
-    @classmethod
     def by_label(cls) -> dict[str, Self]:
         r"""Get the mapping of label to tab, in the order in which the tabs are presented."""
 
@@ -218,7 +203,7 @@ def tariff_list(model: TariffDataFrameModel, timezone: ZoneInfo) -> None:
 def _tariff_list_for_display(model: TariffDataFrameModel, timezone: ZoneInfo) -> pd.DataFrame:
     r"""Prepare the dataset of the tariffs for display in the list of the tariffs.
 
-    *Last edited* is converted from UTC to the business timezone and *Valid until* is shown
+    *Last edited* is converted to the business timezone and *Valid until* is shown
     as the last day on which a tariff is valid (inclusive), rather than the exclusive end date
     that is stored. An open-ended tariff keeps an empty *Valid until*. The transforms are for
     display only and do not change the contract of `model`.
@@ -238,14 +223,13 @@ def _tariff_list_for_display(model: TariffDataFrameModel, timezone: ZoneInfo) ->
     """
 
     df = model.df
-    last_edited_at = df[TariffDataFrameModel.c_last_edited_at]
 
-    if last_edited_at.dt.tz is None:
-        last_edited_at = last_edited_at.dt.tz_localize('UTC')
-
-    # Convert through a NumPy backed dtype, since removing the timezone of a PyArrow
-    # backed timestamp keeps the wall time of UTC rather than of the converted timezone.
-    last_edited_at = last_edited_at.astype(pd.DatetimeTZDtype(tz=timezone))
+    # Convert to a NumPy backed dtype whatever backs the loaded column, since removing the
+    # timezone of a PyArrow backed timestamp keeps the wall time of UTC rather than of the
+    # converted timezone.
+    last_edited_at = df[TariffDataFrameModel.c_last_edited_at].astype(
+        pd.DatetimeTZDtype(tz=timezone)
+    )
 
     return df.assign(
         **{
@@ -308,7 +292,9 @@ def tariff_tabs() -> TariffDesignTab:
     binding = bind_query_param(
         options=TariffDesignTab.by_label(),
         query_param=QueryParam.TAB,
-        parse=TariffDesignTab.from_value,
+        # Calling the enum with an address value resolves the tab, but mypy reads the
+        # signature of the call from the custom __new__ of the members.
+        parse=cast(Callable[[str], TariffDesignTab], TariffDesignTab),
     )
     containers = st.tabs(binding.labels, key=binding.key, on_change=binding.on_change)
 
