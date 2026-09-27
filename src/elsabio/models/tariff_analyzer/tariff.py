@@ -116,9 +116,11 @@ class TariffDataFrameModel(BaseDataFrameModel):
         in the configured business timezone of the app.
 
     last_edited_at : datetime.datetime
-        The timestamp at which the tariff itself was last edited (UTC). The timestamp of
-        the latest update of the tariff and the timestamp of its creation if it has never
-        been updated. It does not yet cover the cost groups, the palette and the components
+        The timestamp at which the tariff itself was last edited. The timestamp of the latest
+        update of the tariff and the timestamp of its creation if it has never been updated.
+        It is loaded from the database in UTC. A view that displays it converts it to the
+        configured business timezone of the app, so the user reads it in the same frame as the
+        validity period. It does not yet cover the cost groups, the palette and the components
         that belong to the tariff.
     """
 
@@ -136,6 +138,24 @@ class TariffDataFrameModel(BaseDataFrameModel):
     }
 
     parse_dates: ClassVar[list[str]] = [c_validity_start, c_validity_end, c_last_edited_at]
+
+    def id_by_name(self) -> dict[str, int]:
+        r"""Get the mapping of the name of each tariff to its tariff_id.
+
+        The order of the tariffs of the dataset is preserved.
+
+        Returns
+        -------
+        dict[str, int]
+            The mapping of name to tariff_id.
+        """
+
+        df = self.df
+
+        return {
+            str(name): int(id_)
+            for name, id_ in zip(df[self.c_name], df[self.c_tariff_id], strict=True)
+        }
 
 
 class TariffCalculationDataFrameModel(BaseDataFrameModel):

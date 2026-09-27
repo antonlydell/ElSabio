@@ -8,6 +8,7 @@ r"""User authentication and authorization."""
 # Third party
 from streamlit_passwordless import AdminRole as AdminRole
 from streamlit_passwordless import BitwardenPasswordlessClient as BitwardenPasswordlessClient
+from streamlit_passwordless import Role as Role
 from streamlit_passwordless import SuperUserRole as SuperUserRole
 from streamlit_passwordless import UserRole as UserRole
 from streamlit_passwordless import ViewerRole as ViewerRole

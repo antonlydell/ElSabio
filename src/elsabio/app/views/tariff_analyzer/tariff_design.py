@@ -6,17 +6,26 @@
 r"""The views of the Tariff Design page."""
 
 # Standard library
+from collections.abc import Sequence
 from enum import StrEnum
+from typing import Self
+from zoneinfo import ZoneInfo
 
 # Third party
+import pandas as pd
 import streamlit as st
+from streamlit.delta_generator import DeltaGenerator
 
 # Local
-from elsabio.app.components import ICON_INFO, id_by_name, select_by_name
-from elsabio.app.state import QueryParam, get_enum_query_param, set_query_param
+from elsabio.app.components import (
+    ICON_INFO,
+    ICON_WARNING,
+    OnChange,
+    query_param_widget,
+    select_by_name,
+)
+from elsabio.app.state import QueryParam
 from elsabio.models.tariff_analyzer import TariffDataFrameModel
-
-SK_TAB = 'tariff-design-tab'
 
 EXPLAINER = """\
 A **Tariff** is a complete price sheet for grid usage, in one currency and bounded by a validity
@@ -43,12 +52,17 @@ No tariffs are defined yet. A tariff is the price sheet that everything else on 
 off, so create one to get started. Until then there is nothing to design.
 """
 
+TARIFF_NOT_FOUND = """\
+The linked tariff could not be found. It may have been deleted, or the address of the page may
+have been edited. The first tariff is selected instead, so check that it is the one you want to
+work with.
+"""
+
 
 class TariffDesignTab(StrEnum):
     r"""The tabs of the Tariff Design page, which are all scoped to one selected tariff.
 
-    The value of a member is how the tab is carried in the address of the page and
-    the label of a tab is derived from it.
+    The value of a member is how the tab is carried in the address of the page.
 
     Members
     -------
@@ -74,42 +88,60 @@ class TariffDesignTab(StrEnum):
         The calculation of the tariff and the runs it has made.
     """
 
-    DETAILS = 'details'
-    COST_GROUPS = 'cost-groups'
-    CUSTOMER_GROUP_ASSIGNMENT = 'customer-group-assignment'
-    PALETTE = 'palette'
-    PRICE_MATRIX = 'price-matrix'
-    PRICE_OVERVIEW = 'price-overview'
-    CALCULATE = 'calculate'
+    label: str
+    description: str
 
-    @property
-    def label(self) -> str:
-        r"""The label of the tab as it is presented to the user."""
+    def __new__(cls, value: str, label: str, description: str) -> Self:
+        r"""Create a tab from its address value, its label and its description."""
 
-        return self.replace('-', ' ').capitalize()
+        member = str.__new__(cls, value)
+        member._value_ = value
+        member.label = label
+        member.description = description
 
+        return member
 
-TABS_BY_LABEL: dict[str, TariffDesignTab] = {tab.label: tab for tab in TariffDesignTab}
+    DETAILS = (
+        'details',
+        'Details',
+        'The currency, validity period, high load period and description of the tariff.',
+    )
+    COST_GROUPS = (
+        'cost-groups',
+        'Cost groups',
+        'The parts of the customer base that the tariff prices differently.',
+    )
+    CUSTOMER_GROUP_ASSIGNMENT = (
+        'customer-group-assignment',
+        'Customer group assignment',
+        'Which customer groups belong to which cost group of the tariff.',
+    )
+    PALETTE = (
+        'palette',
+        'Palette',
+        'The component types that the tariff may use when pricing.',
+    )
+    PRICE_MATRIX = (
+        'price-matrix',
+        'Price matrix',
+        'The prices of one component type across every cost group of the tariff.',
+    )
+    PRICE_OVERVIEW = (
+        'price-overview',
+        'Price overview',
+        'Every price of the tariff in one read-only table.',
+    )
+    CALCULATE = (
+        'calculate',
+        'Calculate',
+        'Calculate the tariff over a period and follow the runs it has made.',
+    )
 
-TAB_DESCRIPTIONS: dict[TariffDesignTab, str] = {
-    TariffDesignTab.DETAILS: (
-        'The currency, validity period, high load period and description of the tariff.'
-    ),
-    TariffDesignTab.COST_GROUPS: (
-        'The parts of the customer base that the tariff prices differently.'
-    ),
-    TariffDesignTab.CUSTOMER_GROUP_ASSIGNMENT: (
-        'Which customer groups belong to which cost group of the tariff.'
-    ),
-    TariffDesignTab.PALETTE: 'The component types that the tariff may use when pricing.',
-    TariffDesignTab.PRICE_MATRIX: (
-        'The prices of one component type across every cost group of the tariff.'
-    ),
-    TariffDesignTab.PRICE_OVERVIEW: 'Every price of the tariff in one read-only table.',
-    TariffDesignTab.CALCULATE: (
-        'Calculate the tariff over a period and follow the runs it has made.'
-    ),
-}
+    @classmethod
+    def by_label(cls) -> dict[str, Self]:
+        r"""Get the mapping of label to tab, in the order in which the tabs are presented."""
+
+        return {tab.label: tab for tab in cls}
 
 
 def title() -> None:
@@ -139,42 +171,90 @@ def no_tariffs_defined() -> None:
     st.info(NO_TARIFFS_DEFINED, icon=ICON_INFO)
 
 
-def tariff_list(model: TariffDataFrameModel) -> None:
+def tariff_list(model: TariffDataFrameModel, timezone: ZoneInfo) -> None:
     r"""Render the view of the list of the tariffs.
 
     Parameters
     ----------
     model : elsabio.models.tariff_analyzer.TariffDataFrameModel
         The dataset of the tariffs to list.
+
+    timezone : zoneinfo.ZoneInfo
+        The configured business timezone of the app, in which *Last edited* is shown
+        so that it reads in the same frame as the validity period of a tariff.
     """
 
-    m = TariffDataFrameModel
-
     st.dataframe(
-        model.df,
+        _tariff_list_for_display(model=model, timezone=timezone),
         hide_index=True,
         width='stretch',
         column_order=(
-            m.c_name,
-            m.c_currency_iso_code,
-            m.c_validity_start,
-            m.c_validity_end,
-            m.c_last_edited_at,
+            TariffDataFrameModel.c_name,
+            TariffDataFrameModel.c_currency_iso_code,
+            TariffDataFrameModel.c_validity_start,
+            TariffDataFrameModel.c_validity_end,
+            TariffDataFrameModel.c_last_edited_at,
         ),
         column_config={
-            m.c_name: st.column_config.TextColumn(label='Tariff'),
-            m.c_currency_iso_code: st.column_config.TextColumn(label='Currency'),
-            m.c_validity_start: st.column_config.DateColumn(label='Valid from'),
-            m.c_validity_end: st.column_config.DateColumn(label='Valid until'),
-            m.c_last_edited_at: st.column_config.DatetimeColumn(label='Last edited (UTC)'),
+            TariffDataFrameModel.c_name: st.column_config.TextColumn(label='Tariff'),
+            TariffDataFrameModel.c_currency_iso_code: st.column_config.TextColumn(label='Currency'),
+            TariffDataFrameModel.c_validity_start: st.column_config.DateColumn(label='Valid from'),
+            TariffDataFrameModel.c_validity_end: st.column_config.DateColumn(label='Valid until'),
+            TariffDataFrameModel.c_last_edited_at: st.column_config.DatetimeColumn(
+                label='Last edited'
+            ),
         },
+    )
+
+
+def _tariff_list_for_display(model: TariffDataFrameModel, timezone: ZoneInfo) -> pd.DataFrame:
+    r"""Prepare the dataset of the tariffs for display in the list of the tariffs.
+
+    *Last edited* is converted from UTC to the business timezone and *Valid until* is shown
+    as the last day on which a tariff is valid (inclusive), rather than the exclusive end date
+    that is stored. An open-ended tariff keeps an empty *Valid until*. The transforms are for
+    display only and do not change the contract of `model`.
+
+    Parameters
+    ----------
+    model : elsabio.models.tariff_analyzer.TariffDataFrameModel
+        The dataset of the tariffs.
+
+    timezone : zoneinfo.ZoneInfo
+        The configured business timezone of the app.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The tariffs ready for display.
+    """
+
+    df = model.df
+    last_edited_at = df[TariffDataFrameModel.c_last_edited_at]
+
+    if last_edited_at.dt.tz is None:
+        last_edited_at = last_edited_at.dt.tz_localize('UTC')
+
+    # Convert through a NumPy backed dtype, since removing the timezone of a PyArrow
+    # backed timestamp keeps the wall time of UTC rather than of the converted timezone.
+    last_edited_at = last_edited_at.astype(pd.DatetimeTZDtype(tz=timezone))
+
+    return df.assign(
+        **{
+            TariffDataFrameModel.c_validity_end: (
+                df[TariffDataFrameModel.c_validity_end] - pd.Timedelta(1, unit='D')
+            ),
+            TariffDataFrameModel.c_last_edited_at: last_edited_at.dt.tz_localize(None),
+        }
     )
 
 
 def select_tariff(model: TariffDataFrameModel) -> int | None:
     r"""Render the view that selects the tariff to work with.
 
-    The selected tariff is carried in the address of the page.
+    The selected tariff is carried in the address of the page. An address that names
+    a tariff that does not exist is warned about, so that the user does not mistake the
+    first tariff, which is selected instead, for the one they were sent.
 
     Parameters
     ----------
@@ -187,23 +267,30 @@ def select_tariff(model: TariffDataFrameModel) -> int | None:
         The tariff_id of the selected tariff and None if there are no tariffs to select among.
     """
 
-    return select_by_name(
+    warning = st.container()
+    selection = select_by_name(
         label='Tariff',
-        options=id_by_name(
-            df=model.df,
-            name_col=TariffDataFrameModel.c_name,
-            id_col=TariffDataFrameModel.c_tariff_id,
-        ),
+        options=model.id_by_name(),
         query_param=QueryParam.TARIFF_ID,
         help='The tariff to work with. The selected tariff is part of the address of the page.',
     )
+
+    if selection is None:
+        return None
+
+    if selection.unknown:
+        warning.warning(TARIFF_NOT_FOUND, icon=ICON_WARNING)
+
+    return selection.value
 
 
 def tariff_tabs() -> TariffDesignTab:
     r"""Render the tabs of the Tariff Design page, which are scoped to the selected tariff.
 
     The active tab is carried in the address of the page, which is the source of truth in
-    the same way as for the selected tariff. See :func:`elsabio.app.components.select_by_name`.
+    the same way as for the selected tariff. An address that names an unknown tab silently
+    opens the first tab, since a wrong tab carries no risk of editing the wrong tariff.
+    See :func:`elsabio.app.components.query_param_widget`.
 
     Returns
     -------
@@ -211,35 +298,15 @@ def tariff_tabs() -> TariffDesignTab:
         The tab that is active after the view has been rendered.
     """
 
-    active_tab = get_enum_query_param(
-        param=QueryParam.TAB, members=TariffDesignTab, default=TariffDesignTab.DETAILS
+    def tabs(labels: list[str], key: str, on_change: OnChange) -> Sequence[DeltaGenerator]:
+        return st.tabs(labels, key=key, on_change=on_change)
+
+    containers, selection = query_param_widget(
+        widget=tabs, options=TariffDesignTab.by_label(), query_param=QueryParam.TAB
     )
 
-    if st.session_state.get(SK_TAB) != active_tab.label:
-        st.session_state[SK_TAB] = active_tab.label
-
-    tabs = st.tabs(
-        [tab.label for tab in TariffDesignTab],
-        default=active_tab.label,
-        key=SK_TAB,
-        on_change=_carry_active_tab_in_address,
-    )
-
-    for container, tab in zip(tabs, TariffDesignTab, strict=True):
+    for container, tab in zip(containers, TariffDesignTab, strict=True):
         with container:
-            st.info(f'{TAB_DESCRIPTIONS[tab]} Not built yet.', icon=ICON_INFO)
+            st.info(f'{tab.description} Not built yet.', icon=ICON_INFO)
 
-    active_tab = TABS_BY_LABEL[st.session_state[SK_TAB]]
-    set_query_param(QueryParam.TAB, active_tab)
-
-    return active_tab
-
-
-def _carry_active_tab_in_address() -> None:
-    r"""Write a changed active tab to the address of the page.
-
-    Runs before the page is rendered again, so that the address is up to
-    date by the time :func:`tariff_tabs` reads it back.
-    """
-
-    set_query_param(QueryParam.TAB, TABS_BY_LABEL[st.session_state[SK_TAB]])
+    return selection.value

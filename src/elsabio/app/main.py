@@ -12,8 +12,8 @@ from pathlib import Path
 import streamlit as st
 
 # Local
-from elsabio.app._pages import Pages
-from elsabio.app.auth import SuperUserRole, authenticated
+from elsabio.app._pages import REQUIRED_ROLES, Pages
+from elsabio.app.auth import authenticated
 from elsabio.app.components import sidebar
 
 APP_PATH = Path(__file__)
@@ -26,7 +26,7 @@ def main() -> None:
 
     pages = [st.Page(page=Pages.HOME, title='Home', icon='🏡')]
 
-    if user is not None and user.is_authorized(role=SuperUserRole):
+    if user is not None and user.is_authorized(role=REQUIRED_ROLES[Pages.TARIFF_DESIGN]):
         pages.append(st.Page(page=Pages.TARIFF_DESIGN, title='Tariff Design', icon='🧾'))
 
     pages.append(st.Page(page=Pages.SIGN_IN, title='Sign in', icon='🔑', default=True))

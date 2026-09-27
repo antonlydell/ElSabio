@@ -5,14 +5,24 @@
 
 r"""The controller of the Tariff Design page."""
 
+# Standard library
+from zoneinfo import ZoneInfo
+
 # Local
 from elsabio.app.components import operation_error
 from elsabio.app.data.tariff_analyzer import load_tariffs
-from elsabio.app.views.tariff_analyzer import tariff_design as views
+from elsabio.app.views.tariff_analyzer.tariff_design import (
+    explainer,
+    no_tariffs_defined,
+    select_tariff,
+    tariff_list,
+    tariff_tabs,
+    title,
+)
 from elsabio.database import Session
 
 
-def controller(session: Session) -> None:
+def controller(session: Session, timezone: ZoneInfo) -> None:
     r"""Render the Tariff Design page.
 
     The selected tariff and the active tab are carried in the address of the page,
@@ -23,23 +33,25 @@ def controller(session: Session) -> None:
     ----------
     session : elsabio.db.Session
         An active session to the ElSabio database.
+
+    timezone : zoneinfo.ZoneInfo
+        The configured business timezone of the app.
     """
 
-    views.title()
+    title()
 
-    model, result = load_tariffs(_session=session)
+    model, result = load_tariffs(session=session)
 
     if not result.ok:
-        load_tariffs.clear()  # Do not serve a failed load from the cache.
         operation_error(result)
         return
 
     if model.empty:
-        views.explainer(expanded=True)
-        views.no_tariffs_defined()
+        explainer(expanded=True)
+        no_tariffs_defined()
         return
 
-    views.explainer()
-    views.tariff_list(model=model)
-    views.select_tariff(model=model)
-    views.tariff_tabs()
+    explainer()
+    tariff_list(model=model, timezone=timezone)
+    select_tariff(model=model)
+    tariff_tabs()
