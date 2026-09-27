@@ -92,7 +92,7 @@ class QueryParamBinding[T]:
         by the time :func:`bind_query_param` reads it on the next run of the page.
         """
 
-        set_query_param(self.query_param, str(self.options[st.session_state[self.key]]))
+        self._write_to_address(self.options[st.session_state[self.key]])
 
     def selection(self) -> Selection[T]:
         r"""Get the choice of the rendered component and write it back to the address.
@@ -107,9 +107,24 @@ class QueryParamBinding[T]:
         """
 
         value = self.options[st.session_state[self.key]]
-        set_query_param(self.query_param, str(value))
+        self._write_to_address(value)
 
         return Selection(value=value, unknown=self.unknown)
+
+    def _write_to_address(self, value: T) -> None:
+        r"""Write `value` to the address of the page unless the address already holds it.
+
+        Every write sends a message to the browser, even if the value is unchanged,
+        so skipping a redundant write saves a message on every run of the page.
+
+        Parameters
+        ----------
+        value : T
+            The value to write.
+        """
+
+        if get_query_param(self.query_param) != (param_value := str(value)):
+            set_query_param(self.query_param, param_value)
 
 
 def bind_query_param[T](

@@ -294,6 +294,11 @@ def tariff_tabs() -> TariffDesignTab:
     opens the first tab, since a wrong tab carries no risk of editing the wrong tariff.
     See :func:`elsabio.app.components.bind_query_param`.
 
+    Switching tabs reruns the page to carry the active tab in the address, so only the
+    content of the open tab is rendered. A rerun then does the work of one tab rather
+    than of every tab. Render the content of a new tab inside the ``if container.open``
+    branch of its tab.
+
     Returns
     -------
     TariffDesignTab
@@ -308,7 +313,8 @@ def tariff_tabs() -> TariffDesignTab:
     containers = st.tabs(binding.labels, key=binding.key, on_change=binding.on_change)
 
     for container, tab in zip(containers, TariffDesignTab, strict=True):
-        with container:
-            st.info(f'{tab.description} Not built yet.', icon=ICON_INFO)
+        if container.open:
+            with container:
+                st.info(f'{tab.description} Not built yet.', icon=ICON_INFO)
 
     return binding.selection().value

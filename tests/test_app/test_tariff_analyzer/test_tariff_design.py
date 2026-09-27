@@ -264,6 +264,44 @@ class TestTariffDesignPageSelection:
         assert at.selectbox[0].value == 'Tariff B', 'The selected tariff was lost!'
         assert at.query_params['tariff_id'] == ['2'], 'The address was not updated!'
 
+    @pytest.mark.parametrize(
+        ('query_params', 'open_tab', 'closed_tab'),
+        [
+            ({}, 'The currency, validity period', 'The prices of one component type'),
+            (
+                {'tab': 'price-matrix'},
+                'The prices of one component type',
+                'The currency, validity period',
+            ),
+        ],
+        ids=['default-tab', 'tab-of-the-address'],
+    )
+    def test_only_the_open_tab_is_rendered(
+        self,
+        app: AppTest,
+        superuser: stp.User,
+        query_params: dict[str, str],
+        open_tab: str,
+        closed_tab: str,
+    ) -> None:
+        r"""Test that the content of a tab is only rendered while the tab is open.
+
+        Switching tabs reruns the page, so rendering only the open tab keeps a rerun
+        from doing the work of every tab.
+        """
+
+        # Exercise
+        # ===========================================================
+        at = open_tariff_design(app, user=superuser, **query_params)
+
+        # Verify
+        # ===========================================================
+        assert not at.exception, f'The page raised an exception! {at.exception}'
+
+        messages = ' '.join(i.value for i in at.info)
+        assert open_tab in messages, 'The open tab was not rendered!'
+        assert closed_tab not in messages, 'A closed tab was rendered!'
+
     def test_an_unknown_tab_falls_back_to_the_first_tab(
         self, app: AppTest, superuser: stp.User
     ) -> None:
