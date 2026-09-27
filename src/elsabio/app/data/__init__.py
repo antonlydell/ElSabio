@@ -9,6 +9,6 @@ The loaders use the copying data cache of Streamlit so that the dataset handed t
 user cannot be mutated underneath another, and it is cleared explicitly by the save path
 of an operation that writes the entity in question. The resource cache is not used here
 since it hands every user the same object. Both caches are shared by all sessions of the
-process. A loader owns its cache policy: it never caches a failed load, so no caller has
-to remember to clear it.
+process. A loader owns its cache policy: it clears a failed load from the cache itself, so
+no caller has to remember to clear it.
 """

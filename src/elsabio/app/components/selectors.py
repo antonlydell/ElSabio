@@ -22,7 +22,8 @@ from collections.abc import Mapping
 import streamlit as st
 
 # Local
-from elsabio.app.components.query_param import OnChange, Selection, query_param_widget
+from elsabio.app.components.icons import ICON_WARNING
+from elsabio.app.components.query_param import Selection, bind_query_param
 from elsabio.app.state import QueryParam, set_query_param
 
 
@@ -31,6 +32,7 @@ def select_by_name(
     options: Mapping[str, int],
     query_param: QueryParam,
     help: str | None = None,  # noqa: A002
+    not_found_msg: str | None = None,
 ) -> Selection[int] | None:
     r"""Render a selector that presents names and returns the ID of the selected name.
 
@@ -40,8 +42,8 @@ def select_by_name(
     The selection is carried by `query_param` in the address of the page, which is the
     source of truth. An address without `query_param` selects the first option, and so
     does an address that names an object that does not exist, which is reported through
-    :attr:`Selection.unknown <elsabio.app.components.Selection.unknown>` for the caller
-    to act on. See :func:`elsabio.app.components.query_param_widget`.
+    :attr:`Selection.unknown <elsabio.app.components.Selection.unknown>`.
+    See :func:`elsabio.app.components.bind_query_param`.
 
     Parameters
     ----------
@@ -58,6 +60,10 @@ def select_by_name(
     help : str or None, default None
         An optional tooltip that explains the selector.
 
+    not_found_msg : str or None, default None
+        A warning to render above the selector if the address names an object that
+        does not exist. If None no warning is rendered.
+
     Returns
     -------
     elsabio.app.components.Selection[int] or None
@@ -69,9 +75,17 @@ def select_by_name(
         set_query_param(query_param, None)
         return None
 
-    def selectbox(names: list[str], key: str, on_change: OnChange) -> str:
-        return st.selectbox(label=label, options=names, key=key, help=help, on_change=on_change)
+    binding = bind_query_param(options=options, query_param=query_param, parse=int)
 
-    _, selection = query_param_widget(widget=selectbox, options=options, query_param=query_param)
+    if binding.unknown and not_found_msg is not None:
+        st.warning(not_found_msg, icon=ICON_WARNING)
 
-    return selection
+    st.selectbox(
+        label=label,
+        options=binding.labels,
+        key=binding.key,
+        help=help,
+        on_change=binding.on_change,
+    )
+
+    return binding.selection()

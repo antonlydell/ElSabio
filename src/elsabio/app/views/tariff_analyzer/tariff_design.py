@@ -6,7 +6,6 @@
 r"""The views of the Tariff Design page."""
 
 # Standard library
-from collections.abc import Sequence
 from enum import StrEnum
 from typing import Self
 from zoneinfo import ZoneInfo
@@ -14,16 +13,9 @@ from zoneinfo import ZoneInfo
 # Third party
 import pandas as pd
 import streamlit as st
-from streamlit.delta_generator import DeltaGenerator
 
 # Local
-from elsabio.app.components import (
-    ICON_INFO,
-    ICON_WARNING,
-    OnChange,
-    query_param_widget,
-    select_by_name,
-)
+from elsabio.app.components import ICON_INFO, bind_query_param, select_by_name
 from elsabio.app.state import QueryParam
 from elsabio.models.tariff_analyzer import TariffDataFrameModel
 
@@ -136,6 +128,22 @@ class TariffDesignTab(StrEnum):
         'Calculate',
         'Calculate the tariff over a period and follow the runs it has made.',
     )
+
+    @classmethod
+    def from_value(cls, value: str) -> Self:
+        r"""Get the tab that is carried in the address of the page as `value`.
+
+        Raises
+        ------
+        ValueError
+            If `value` names no tab.
+        """
+
+        for tab in cls:
+            if tab.value == value:
+                return tab
+
+        raise ValueError(f'"{value}" is not a tab of the Tariff Design page!')
 
     @classmethod
     def by_label(cls) -> dict[str, Self]:
@@ -267,21 +275,15 @@ def select_tariff(model: TariffDataFrameModel) -> int | None:
         The tariff_id of the selected tariff and None if there are no tariffs to select among.
     """
 
-    warning = st.container()
     selection = select_by_name(
         label='Tariff',
         options=model.id_by_name(),
         query_param=QueryParam.TARIFF_ID,
         help='The tariff to work with. The selected tariff is part of the address of the page.',
+        not_found_msg=TARIFF_NOT_FOUND,
     )
 
-    if selection is None:
-        return None
-
-    if selection.unknown:
-        warning.warning(TARIFF_NOT_FOUND, icon=ICON_WARNING)
-
-    return selection.value
+    return None if selection is None else selection.value
 
 
 def tariff_tabs() -> TariffDesignTab:
@@ -290,7 +292,7 @@ def tariff_tabs() -> TariffDesignTab:
     The active tab is carried in the address of the page, which is the source of truth in
     the same way as for the selected tariff. An address that names an unknown tab silently
     opens the first tab, since a wrong tab carries no risk of editing the wrong tariff.
-    See :func:`elsabio.app.components.query_param_widget`.
+    See :func:`elsabio.app.components.bind_query_param`.
 
     Returns
     -------
@@ -298,15 +300,15 @@ def tariff_tabs() -> TariffDesignTab:
         The tab that is active after the view has been rendered.
     """
 
-    def tabs(labels: list[str], key: str, on_change: OnChange) -> Sequence[DeltaGenerator]:
-        return st.tabs(labels, key=key, on_change=on_change)
-
-    containers, selection = query_param_widget(
-        widget=tabs, options=TariffDesignTab.by_label(), query_param=QueryParam.TAB
+    binding = bind_query_param(
+        options=TariffDesignTab.by_label(),
+        query_param=QueryParam.TAB,
+        parse=TariffDesignTab.from_value,
     )
+    containers = st.tabs(binding.labels, key=binding.key, on_change=binding.on_change)
 
     for container, tab in zip(containers, TariffDesignTab, strict=True):
         with container:
             st.info(f'{tab.description} Not built yet.', icon=ICON_INFO)
 
-    return selection.value
+    return binding.selection().value

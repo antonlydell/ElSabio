@@ -208,6 +208,26 @@ class TestTariffDesignPageSelection:
         assert at.selectbox[0].value == 'Tariff A', 'The first tariff is not selected!'
         assert at.query_params['tariff_id'] == ['1'], 'The address was not corrected!'
 
+    def test_a_tariff_id_with_a_leading_zero_selects_the_tariff(
+        self, app: AppTest, superuser: stp.User
+    ) -> None:
+        r"""Test that an address that names a tariff in a non-standard form selects it.
+
+        The address is corrected to the standard form without a warning, since it
+        names the right tariff.
+        """
+
+        # Exercise
+        # ===========================================================
+        at = open_tariff_design(app, user=superuser, tariff_id='02')
+
+        # Verify
+        # ===========================================================
+        assert not at.exception, f'The page raised an exception! {at.exception}'
+        assert at.selectbox[0].value == 'Tariff B', 'The tariff of the address is not selected!'
+        assert at.query_params['tariff_id'] == ['2'], 'The address was not corrected!'
+        assert not warning_text(at), 'A known tariff was warned about!'
+
     def test_the_tariff_and_tab_of_the_address_are_selected(
         self, app: AppTest, superuser: stp.User
     ) -> None:

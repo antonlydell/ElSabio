@@ -13,7 +13,12 @@ from elsabio.app.components.forms import (
 )
 from elsabio.app.components.icons import ICON_ERROR, ICON_INFO, ICON_SUCCESS, ICON_WARNING
 from elsabio.app.components.messages import operation_error
-from elsabio.app.components.query_param import OnChange, Selection, query_param_widget
+from elsabio.app.components.query_param import (
+    QueryParamBinding,
+    Selection,
+    bind_query_param,
+    resolve_query_param,
+)
 from elsabio.app.components.selectors import select_by_name
 from elsabio.app.components.sidebar import sidebar
 from elsabio.app.components.text import user_info_text
@@ -34,9 +39,10 @@ __all__ = [
     # messages
     'operation_error',
     # query_param
-    'OnChange',
+    'QueryParamBinding',
     'Selection',
-    'query_param_widget',
+    'bind_query_param',
+    'resolve_query_param',
     # selectors
     'select_by_name',
     # sidebar
