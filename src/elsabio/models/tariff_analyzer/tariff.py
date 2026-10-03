@@ -94,7 +94,7 @@ class PeriodizeStrategyEnum(StrEnum):
 
 
 class TariffDataFrameModel(BaseDataFrameModel):
-    r"""The tariffs available to work with, presented by name rather than by ID.
+    r"""The tariffs available to work with.
 
     Parameters
     ----------
@@ -114,15 +114,9 @@ class TariffDataFrameModel(BaseDataFrameModel):
     validity_end : datetime.date or None
         The end date the tariff is valid until (exclusive)
         in the configured business timezone of the app.
-        A view that shows it inclusively shifts it back one day.
 
     last_edited_at : pandas.Timestamp
-        The moment at which the tariff itself was last edited, as a timestamp with the timezone
-        UTC. The moment of the latest update of the tariff and the moment of its creation if it
-        has never been updated. A view that displays it converts it to the configured business
-        timezone of the app, so the user reads it in the same frame as the validity period.
-        It does not yet cover the cost groups, the palette and the components that belong to
-        the tariff.
+        The timestamp when the tariff was last edited expressed in timezone UTC.
     """
 
     c_tariff_id: ClassVar[str] = 'tariff_id'

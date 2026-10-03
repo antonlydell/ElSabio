@@ -173,12 +173,12 @@ def tariff_list(model: TariffDataFrameModel, timezone: ZoneInfo) -> None:
         The dataset of the tariffs to list.
 
     timezone : zoneinfo.ZoneInfo
-        The configured business timezone of the app, in which *Last edited* is shown
-        so that it reads in the same frame as the validity period of a tariff.
+        The configured business timezone of the app used for displaying
+        the datetime columns.
     """
 
     st.dataframe(
-        _tariff_list_for_display(model=model, timezone=timezone),
+        _tariff_list_for_display(model=model),
         hide_index=True,
         width='stretch',
         column_order=(
@@ -194,27 +194,22 @@ def tariff_list(model: TariffDataFrameModel, timezone: ZoneInfo) -> None:
             TariffDataFrameModel.c_validity_start: st.column_config.DateColumn(label='Valid from'),
             TariffDataFrameModel.c_validity_end: st.column_config.DateColumn(label='Valid until'),
             TariffDataFrameModel.c_last_edited_at: st.column_config.DatetimeColumn(
-                label='Last edited'
+                label='Last edited', timezone=str(timezone)
             ),
         },
     )
 
 
-def _tariff_list_for_display(model: TariffDataFrameModel, timezone: ZoneInfo) -> pd.DataFrame:
+def _tariff_list_for_display(model: TariffDataFrameModel) -> pd.DataFrame:
     r"""Prepare the dataset of the tariffs for display in the list of the tariffs.
 
-    *Last edited* is converted to the business timezone and *Valid until* is shown
-    as the last day on which a tariff is valid (inclusive), rather than the exclusive end date
-    that is stored. An open-ended tariff keeps an empty *Valid until*. The transforms are for
-    display only and do not change the contract of `model`.
+    The date of the validity_end column of `model` is converted from exclusive to
+    inclusive to make it display the last day on which the tariff is valid.
 
     Parameters
     ----------
     model : elsabio.models.tariff_analyzer.TariffDataFrameModel
         The dataset of the tariffs.
-
-    timezone : zoneinfo.ZoneInfo
-        The configured business timezone of the app.
 
     Returns
     -------
@@ -224,19 +219,11 @@ def _tariff_list_for_display(model: TariffDataFrameModel, timezone: ZoneInfo) ->
 
     df = model.df
 
-    # Convert to a NumPy backed dtype whatever backs the loaded column, since removing the
-    # timezone of a PyArrow backed timestamp keeps the wall time of UTC rather than of the
-    # converted timezone.
-    last_edited_at = df[TariffDataFrameModel.c_last_edited_at].astype(
-        pd.DatetimeTZDtype(tz=timezone)
-    )
-
     return df.assign(
         **{
             TariffDataFrameModel.c_validity_end: (
                 df[TariffDataFrameModel.c_validity_end] - pd.Timedelta(1, unit='D')
             ),
-            TariffDataFrameModel.c_last_edited_at: last_edited_at.dt.tz_localize(None),
         }
     )
 

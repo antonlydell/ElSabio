@@ -14,6 +14,7 @@ the app to prove the guard of the page itself.
 """
 
 # Standard library
+import json
 from datetime import datetime
 from pathlib import Path
 
@@ -27,7 +28,7 @@ from streamlit.testing.v1 import AppTest
 # Local
 from elsabio.app import APP_PATH
 from elsabio.models.tariff_analyzer import TariffDataFrameModel
-from tests.test_app.conftest import APP_TEST_TIMEOUT
+from tests.test_app.conftest import APP_TEST_TIMEOUT, BUSINESS_TIMEZONE
 
 PAGE = '_pages/tariff_analyzer/tariff_design.py'
 TITLE = 'Tariff Design'
@@ -261,14 +262,21 @@ class TestTariffDesignPageWithoutTariffs:
 class TestTariffList:
     r"""Tests of the list of the tariffs of the Tariff Design page."""
 
-    def test_last_edited_is_shown_in_the_business_timezone(
+    def test_last_edited_at_col_is_shown_in_the_business_timezone(
         self, app: AppTest, superuser: stp.User
     ) -> None:
-        r"""Test that *Last edited* is converted from UTC to the business timezone.
+        r"""Test that the last_edited_at column is rendered in the business timezone.
 
-        The business timezone of the app is America/New_York, which is 4 hours behind
-        UTC in the summer and 5 hours behind UTC in the winter.
+        The column is rendered in the business timezone, but the underlying values
+        are not converted from their original UTC timezone.
         """
+
+        # Setup
+        # ===========================================================
+        timestamps_in_utc_exp = [
+            pd.Timestamp(datetime(2026, 7, 15, 22, 30, 0), tz='UTC'),
+            pd.Timestamp(datetime(2026, 1, 10, 9, 15, 0), tz='UTC'),
+        ]
 
         # Exercise
         # ===========================================================
@@ -279,10 +287,14 @@ class TestTariffList:
         assert not at.exception, f'The page raised an exception! {at.exception}'
 
         df = at.dataframe[0].value
-        assert df[TariffDataFrameModel.c_last_edited_at].tolist() == [
-            pd.Timestamp(datetime(2026, 7, 15, 18, 30, 0)),
-            pd.Timestamp(datetime(2026, 1, 10, 4, 15, 0)),
-        ], 'Last edited is not shown in the business timezone!'
+        timestamps_in_utc = df[TariffDataFrameModel.c_last_edited_at].tolist()
+
+        assert timestamps_in_utc == timestamps_in_utc_exp, 'Last edited is not the moments in UTC!'
+
+        column_config = json.loads(at.dataframe[0].proto.columns)
+        timezone = column_config[TariffDataFrameModel.c_last_edited_at]['type_config']['timezone']
+
+        assert timezone == BUSINESS_TIMEZONE, 'Last edited is not shown in the business timezone!'
 
     def test_valid_until_is_the_last_day_the_tariff_is_valid(
         self, app: AppTest, superuser: stp.User
