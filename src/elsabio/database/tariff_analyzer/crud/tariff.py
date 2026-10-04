@@ -103,16 +103,6 @@ def load_tariff_ids(
 def load_tariff_model(session: Session) -> tuple[TariffDataFrameModel, OperationResult]:
     r"""Load the tariffs available to work with.
 
-    The tariffs are loaded with the reference data needed to tell them apart by name
-    rather than by ID: the currency, the validity period and when a tariff was last
-    edited. The tariffs are ordered by name.
-
-    *Last edited* is returned as a moment in UTC, which makes the load the one place where
-    the audit timestamps of the database are interpreted. The UTC dtype of the column in
-    :attr:`TariffDataFrameModel.dtypes <elsabio.models.tariff_analyzer.TariffDataFrameModel>`
-    takes a timestamp stored without a timezone, as on SQLite, to be UTC and converts a
-    timestamp stored with a timezone to UTC, so the query must be loaded with those dtypes.
-
     Parameters
     ----------
     session : elsabio.db.Session

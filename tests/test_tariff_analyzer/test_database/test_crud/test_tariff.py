@@ -30,6 +30,11 @@ class TestLoadTariffModel:
         # Setup
         # ===========================================================
         m = TariffDataFrameModel
+        tariff_names_exp = ['Tariff 1', 'Tariff 2']
+        tariff_ids_exp = [1, 2]
+        currency_iso_code_exp = ['SEK', 'SEK']
+        validity_start_exp = [pd.Timestamp(date(2025, 10, 1)), pd.NaT]
+        df_shape_exp = (2, 6)
 
         # Exercise
         # ===========================================================
@@ -41,13 +46,14 @@ class TestLoadTariffModel:
         assert result.ok, f'result.ok is False! short_msg : {result.short_msg}'
 
         df = model.df
-        assert df[m.c_name].tolist() == ['Tariff 1', 'Tariff 2'], 'Incorrect tariff names!'
-        assert df[m.c_tariff_id].tolist() == [1, 2], 'Incorrect tariff_id:s!'
-        assert df[m.c_currency_iso_code].tolist() == ['SEK', 'SEK'], 'Incorrect currencies!'
-        assert df[m.c_validity_start].tolist() == [
-            pd.Timestamp(date(2025, 10, 1)),
-            pd.NaT,
-        ], 'Incorrect validity start dates!'
+
+        assert df.shape == df_shape_exp, 'DataFrame has an incorrect shape!'
+        assert df[m.c_name].tolist() == tariff_names_exp, 'Incorrect tariff names!'
+        assert df[m.c_tariff_id].tolist() == tariff_ids_exp, 'Incorrect tariff_id:s!'
+        assert df[m.c_currency_iso_code].tolist() == currency_iso_code_exp, 'Incorrect currencies!'
+        assert df[m.c_validity_start].tolist() == validity_start_exp, (
+            'Incorrect validity start dates!'
+        )
         assert df[m.c_validity_end].isna().all(), 'Incorrect validity end dates!'
         assert df[m.c_last_edited_at].notna().all(), 'Last edited timestamps are missing!'
 
