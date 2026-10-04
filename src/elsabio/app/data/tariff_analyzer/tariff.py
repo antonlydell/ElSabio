@@ -39,9 +39,7 @@ def _load_tariffs(_session: Session) -> tuple[TariffDataFrameModel, OperationRes
 def load_tariffs(session: Session) -> tuple[TariffDataFrameModel, OperationResult]:
     r"""Load the tariffs available to work with.
 
-    A successful load is cached until it is cleared by :func:`clear_tariffs`, which the
-    save path of an operation that writes a tariff calls. A failed load is cleared from
-    the cache straight away, so the next call tries the database again.
+    A successful load is cached until it is cleared by :func:`clear_tariffs`.
 
     Parameters
     ----------
@@ -66,9 +64,6 @@ def load_tariffs(session: Session) -> tuple[TariffDataFrameModel, OperationResul
 
 
 def clear_tariffs() -> None:
-    r"""Clear the cached tariffs so that the next load reads them from the database.
-
-    Call it from the save path of an operation that writes a tariff.
-    """
+    r"""Clear the cached tariffs."""
 
     _load_tariffs.clear()
