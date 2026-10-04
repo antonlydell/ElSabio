@@ -16,8 +16,8 @@ from elsabio.core import OperationResult
 def operation_error(result: OperationResult) -> None:
     r"""Render the error message of an operation that failed.
 
-    Only the short message of `result` is displayed, since the long message
-    may contain sensitive details and belongs in the log.
+    Only the short message of `result` is displayed, since the
+    long message may contain sensitive details.
 
     Parameters
     ----------
