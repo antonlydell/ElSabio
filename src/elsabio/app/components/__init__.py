@@ -17,6 +17,7 @@ from elsabio.app.components.query_param import (
     QueryParamBinding,
     Selection,
     bind_query_param,
+    query_param_key,
 )
 from elsabio.app.components.selectors import select_by_name
 from elsabio.app.components.sidebar import sidebar
@@ -41,6 +42,7 @@ __all__ = [
     'QueryParamBinding',
     'Selection',
     'bind_query_param',
+    'query_param_key',
     # selectors
     'select_by_name',
     # sidebar

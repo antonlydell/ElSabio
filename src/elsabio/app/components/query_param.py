@@ -103,6 +103,23 @@ class QueryParamBinding[T]:
         )
 
 
+def query_param_key(query_param: QueryParam) -> str:
+    r"""Get the session state key of the component that is bound to `query_param`.
+
+    Parameters
+    ----------
+    query_param : elsabio.app.state.QueryParam
+        The query parameter that the component is bound to.
+
+    Returns
+    -------
+    str
+        The session state key, which is also the key that the component is rendered with.
+    """
+
+    return f'query-param-{query_param}'
+
+
 def bind_query_param[T](
     options: Mapping[str, T], query_param: QueryParam, parse: Callable[[str], T]
 ) -> QueryParamBinding[T]:
@@ -142,7 +159,7 @@ def bind_query_param[T](
         param_value=get_query_param(query_param), values=tuple(options.values()), parse=parse
     )
     label = next(label for label, option in options.items() if option == selection.value)
-    key = f'query-param-{query_param}'
+    key = query_param_key(query_param)
 
     if st.session_state.get(key) != label:
         st.session_state[key] = label

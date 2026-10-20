@@ -9,8 +9,8 @@ The page is reached the way a user reaches it: the app is started from its route
 is selected in the navigation. A page that is not part of the navigation of the signed in user
 cannot be selected, and the router then falls back to its default page, Sign in.
 
-The one exception is :class:`TestTariffDesignPageGuard`, which runs the page without the router of
-the app to prove the guard of the page itself.
+The one exception is :class:`TestTariffDesignPageGuard`, which runs the page from a router that
+does not gate it, to prove the guard of the page itself.
 """
 
 # Standard library
@@ -23,10 +23,14 @@ import pandas as pd
 import pytest
 import streamlit_passwordless as stp
 from streamlit.proto.WidgetStates_pb2 import WidgetState
+from streamlit.runtime.state.common import user_key_from_element_id
 from streamlit.testing.v1 import AppTest
+from streamlit.testing.v1.element_tree import Selectbox
 
 # Local
 from elsabio.app import APP_PATH
+from elsabio.app.components import query_param_key
+from elsabio.app.state import QueryParam
 from elsabio.models.tariff_analyzer import TariffDataFrameModel
 from tests.test_app.conftest import APP_TEST_TIMEOUT, BUSINESS_TIMEZONE
 
@@ -39,7 +43,7 @@ SIGN_IN_MARKER = 'Register a new passkey'
 
 # A stand-in for the router of the app that offers the Tariff Design page to every user,
 # so that the guard of the page is the only thing that can refuse a user.
-ROUTER_WITHOUT_GATE = """\
+ROUTER_WITH_PAGE_ALWAYS_INCLUDED = """\
 import streamlit as st
 
 from elsabio.app._pages import Pages
@@ -50,13 +54,16 @@ st.navigation(pages, position='hidden').run()
 
 
 @pytest.fixture
-def page_without_router(app: AppTest, tmp_path: Path) -> AppTest:  # noqa: ARG001
-    r"""An app test that runs the Tariff Design page without the router of the app.
+def page_always_included_in_router(tmp_path: Path) -> AppTest:
+    r"""An app test that runs the Tariff Design page from a router that always includes it.
 
-    The page is run from :data:`ROUTER_WITHOUT_GATE`, which does not leave the page out of the
-    navigation of any user. The pages of the app are linked next to the stand-in router, so that
-    the page and its redirect to Sign in resolve their pages as they do in the app. `app` is
-    requested for the environment of the app, i.e. its config, database and fresh modules.
+    The page is run from :data:`ROUTER_WITH_PAGE_ALWAYS_INCLUDED`, which includes the page regardless of
+    the role of the user. The real app excludes the page from the router if the user does not have a
+    role of sufficient rank. This way it is possible to test that the @authorized gate on the page
+    works as intended.
+
+    The pages of the test app are symlinked to the actual pages of the app to make the page
+    and its redirect to the Sign in page resolve their pages as they do in the real app.
 
     Returns
     -------
@@ -66,12 +73,12 @@ def page_without_router(app: AppTest, tmp_path: Path) -> AppTest:  # noqa: ARG00
 
     (tmp_path / '_pages').symlink_to(APP_PATH.parent / '_pages', target_is_directory=True)
     router_path = tmp_path / 'router.py'
-    router_path.write_text(ROUTER_WITHOUT_GATE)
+    router_path.write_text(ROUTER_WITH_PAGE_ALWAYS_INCLUDED)
 
     return AppTest.from_file(str(router_path), default_timeout=APP_TEST_TIMEOUT)
 
 
-def open_tariff_design(at: AppTest, user: stp.User, **query_params: str) -> AppTest:
+def open_tariff_design_page(at: AppTest, user: stp.User, **query_params: str) -> AppTest:
     r"""Sign in `user` and open the Tariff Design page from the navigation of the app.
 
     Parameters
@@ -100,7 +107,7 @@ def open_tariff_design(at: AppTest, user: stp.User, **query_params: str) -> AppT
 def page_rendered(at: AppTest) -> bool:
     r"""Check if the Tariff Design page was rendered."""
 
-    return TITLE in [t.value for t in at.title]
+    return TITLE in {t.value for t in at.title}
 
 
 def landed_on_sign_in(at: AppTest) -> bool:
@@ -112,9 +119,10 @@ def landed_on_sign_in(at: AppTest) -> bool:
 def switch_tab(at: AppTest, label: str) -> AppTest:
     r"""Switch to the tab of the Tariff Design page with `label` the way the browser does.
 
-    AppTest cannot interact with ``st.tabs``, so the widget state that the browser sends when
-    the user opens a tab is added to the widget states of the page, which runs the change
-    callback of the tab bar in the same way as a click by the user.
+    AppTest has no way to click a tab bar made by ``st.tabs``. Instead, this helper sends
+    the message that the browser sends when a user opens a tab: a widget state that holds
+    the new value of the tab bar. Streamlit then treats it as a real click. It runs the
+    change callback of the tab bar and reruns the page.
 
     Parameters
     ----------
@@ -130,11 +138,40 @@ def switch_tab(at: AppTest, label: str) -> AppTest:
         `at` after the page has been run again.
     """
 
-    tab_bar = next(node for node in at.main if node.type == 'tab_container')
+    # The widget id of the tab bar ends with its key, but its hash cannot be computed up front.
+    key = query_param_key(QueryParam.TAB)
+    tab_bar_id = next(
+        (
+            node.proto.tab_container.id
+            for node in at.main
+            if node.type == 'tab_container'
+            and user_key_from_element_id(node.proto.tab_container.id) == key
+        ),
+        None,
+    )
+    assert tab_bar_id is not None, f'The page did not render the tab bar with key {key!r}!'
+
     widget_states = at.main.root.get_widget_states()
-    widget_states.widgets.append(WidgetState(id=tab_bar.proto.tab_container.id, string_value=label))
+    widget_states.widgets.append(WidgetState(id=tab_bar_id, string_value=label))
 
     return at._run(widget_states)
+
+
+def tariff_selector(at: AppTest) -> Selectbox[str]:
+    r"""Get the selectbox of the Tariff Design page that selects the tariff.
+
+    Parameters
+    ----------
+    at : streamlit.testing.v1.AppTest
+        The app test with the Tariff Design page open.
+
+    Returns
+    -------
+    streamlit.testing.v1.element_tree.Selectbox[str]
+        The selectbox, looked up by the key that binds it to the address of the page.
+    """
+
+    return at.selectbox(key=query_param_key(QueryParam.TARIFF_ID))
 
 
 def warning_text(at: AppTest) -> str:
@@ -159,7 +196,7 @@ class TestTariffDesignPageAccess:
 
         # Exercise
         # ===========================================================
-        at = open_tariff_design(app, user=request.getfixturevalue(fixture_name))
+        at = open_tariff_design_page(app, user=request.getfixturevalue(fixture_name))
 
         # Verify
         # ===========================================================
@@ -173,15 +210,11 @@ class TestTariffDesignPageAccess:
         fixture_name: str,
         request: pytest.FixtureRequest,
     ) -> None:
-        r"""Test that a User and a Viewer who open the address of the page land on Sign in.
-
-        AppTest does not expose the entries of the navigation, so landing on Sign in, the
-        default page of the router, is the proof that the page is not among them.
-        """
+        r"""Test that a User and a Viewer who open the address of the page land on Sign in."""
 
         # Exercise
         # ===========================================================
-        at = open_tariff_design(app, user=request.getfixturevalue(fixture_name))
+        at = open_tariff_design_page(app, user=request.getfixturevalue(fixture_name))
 
         # Verify
         # ===========================================================
@@ -190,18 +223,22 @@ class TestTariffDesignPageAccess:
         assert landed_on_sign_in(at), 'The user did not land on Sign in!'
 
 
+@pytest.mark.usefixtures('app')
 class TestTariffDesignPageGuard:
-    r"""Tests of the guard of the Tariff Design page itself, without the router of the app."""
+    r"""Tests of the guard of the Tariff Design page itself, without the gate of the router."""
 
     @pytest.mark.parametrize('fixture_name', ['user', 'viewer'])
     def test_a_user_and_a_viewer_are_redirected_to_sign_in(
-        self, page_without_router: AppTest, fixture_name: str, request: pytest.FixtureRequest
+        self,
+        page_always_included_in_router: AppTest,
+        fixture_name: str,
+        request: pytest.FixtureRequest,
     ) -> None:
         r"""Test that the page redirects a User and a Viewer to Sign in."""
 
         # Setup
         # ===========================================================
-        at = page_without_router
+        at = page_always_included_in_router
         at.session_state[stp.SK_USER] = request.getfixturevalue(fixture_name)
 
         # Exercise
@@ -215,17 +252,13 @@ class TestTariffDesignPageGuard:
         assert landed_on_sign_in(at), 'The user was not redirected to Sign in!'
 
     def test_a_superuser_gets_the_page(
-        self, page_without_router: AppTest, superuser: stp.User
+        self, page_always_included_in_router: AppTest, superuser: stp.User
     ) -> None:
-        r"""Test that the page lets a Superuser through.
-
-        It proves that the refusal of a User and a Viewer comes from the guard of the page
-        and not from how the page is run without the router.
-        """
+        r"""Test that the page lets a Superuser through."""
 
         # Setup
         # ===========================================================
-        at = page_without_router
+        at = page_always_included_in_router
         at.session_state[stp.SK_USER] = superuser
 
         # Exercise
@@ -247,7 +280,7 @@ class TestTariffDesignPageWithoutTariffs:
 
         # Exercise
         # ===========================================================
-        at = open_tariff_design(app, user=superuser)
+        at = open_tariff_design_page(app, user=superuser)
 
         # Verify
         # ===========================================================
@@ -260,7 +293,7 @@ class TestTariffDesignPageWithoutTariffs:
 
 @pytest.mark.usefixtures('tariffs')
 class TestTariffList:
-    r"""Tests of the list of the tariffs of the Tariff Design page."""
+    r"""Tests for the list of the tariffs of the Tariff Design page."""
 
     def test_last_edited_at_col_is_shown_in_the_business_timezone(
         self, app: AppTest, superuser: stp.User
@@ -280,7 +313,7 @@ class TestTariffList:
 
         # Exercise
         # ===========================================================
-        at = open_tariff_design(app, user=superuser)
+        at = open_tariff_design_page(app, user=superuser)
 
         # Verify
         # ===========================================================
@@ -289,34 +322,39 @@ class TestTariffList:
         df = at.dataframe[0].value
         timestamps_in_utc = df[TariffDataFrameModel.c_last_edited_at].tolist()
 
-        assert timestamps_in_utc == timestamps_in_utc_exp, 'Last edited is not the moments in UTC!'
+        assert timestamps_in_utc == timestamps_in_utc_exp, (
+            'last_edited_at column is not in UTC timezone!'
+        )
 
         column_config = json.loads(at.dataframe[0].proto.columns)
         timezone = column_config[TariffDataFrameModel.c_last_edited_at]['type_config']['timezone']
 
-        assert timezone == BUSINESS_TIMEZONE, 'Last edited is not shown in the business timezone!'
+        assert timezone == BUSINESS_TIMEZONE, (
+            'last_edited_at column is not shown in the business timezone!'
+        )
 
     def test_valid_until_is_the_last_day_the_tariff_is_valid(
         self, app: AppTest, superuser: stp.User
     ) -> None:
-        r"""Test that *Valid until* is inclusive and empty for an open-ended tariff."""
+        r"""Test that *valid until* is inclusive and empty for an open-ended tariff."""
 
         # Exercise
         # ===========================================================
-        at = open_tariff_design(app, user=superuser)
+        at = open_tariff_design_page(app, user=superuser)
 
         # Verify
         # ===========================================================
         assert not at.exception, f'The page raised an exception! {at.exception}'
 
         valid_until = at.dataframe[0].value[TariffDataFrameModel.c_validity_end]
+
         assert valid_until.iloc[0] == pd.Timestamp(2026, 12, 31), 'Valid until is not inclusive!'
-        assert pd.isna(valid_until.iloc[1]), 'An open-ended tariff has a Valid until date!'
+        assert pd.isna(valid_until.iloc[1]), 'An open-ended tariff has a valid until date!'
 
 
 @pytest.mark.usefixtures('tariffs')
 class TestTariffDesignPageSelection:
-    r"""Tests of the selected tariff and the active tab carried in the address of the page."""
+    r"""Tests for the selected tariff and the active tab carried in the address of the page."""
 
     @pytest.mark.parametrize('query_params', [{}, {'tariff_id': ''}], ids=['missing', 'empty'])
     def test_no_tariff_in_the_address_selects_the_first_tariff(
@@ -326,12 +364,12 @@ class TestTariffDesignPageSelection:
 
         # Exercise
         # ===========================================================
-        at = open_tariff_design(app, user=superuser, **query_params)
+        at = open_tariff_design_page(app, user=superuser, **query_params)
 
         # Verify
         # ===========================================================
         assert not at.exception, f'The page raised an exception! {at.exception}'
-        assert at.selectbox[0].value == 'Tariff A', 'The first tariff is not selected!'
+        assert tariff_selector(at).value == 'Tariff A', 'The first tariff is not selected!'
         assert at.query_params['tariff_id'] == ['1'], 'The address was not updated!'
         assert NOT_FOUND not in warning_text(at), 'A plain visit was warned about!'
 
@@ -343,13 +381,13 @@ class TestTariffDesignPageSelection:
 
         # Exercise
         # ===========================================================
-        at = open_tariff_design(app, user=superuser, tariff_id=tariff_id)
+        at = open_tariff_design_page(app, user=superuser, tariff_id=tariff_id)
 
         # Verify
         # ===========================================================
         assert not at.exception, f'The page raised an exception! {at.exception}'
         assert NOT_FOUND in warning_text(at), 'The unknown tariff was not warned about!'
-        assert at.selectbox[0].value == 'Tariff A', 'The first tariff is not selected!'
+        assert tariff_selector(at).value == 'Tariff A', 'The first tariff is not selected!'
         assert at.query_params['tariff_id'] == ['1'], 'The address was not corrected!'
 
     def test_a_tariff_id_with_a_leading_zero_selects_the_tariff(
@@ -363,12 +401,12 @@ class TestTariffDesignPageSelection:
 
         # Exercise
         # ===========================================================
-        at = open_tariff_design(app, user=superuser, tariff_id='02')
+        at = open_tariff_design_page(app, user=superuser, tariff_id='02')
 
         # Verify
         # ===========================================================
         assert not at.exception, f'The page raised an exception! {at.exception}'
-        assert at.selectbox[0].value == 'Tariff B', 'The tariff of the address is not selected!'
+        assert tariff_selector(at).value == 'Tariff B', 'The tariff of the address is not selected!'
         assert at.query_params['tariff_id'] == ['2'], 'The address was not corrected!'
         assert not warning_text(at), 'A known tariff was warned about!'
 
@@ -379,12 +417,12 @@ class TestTariffDesignPageSelection:
 
         # Exercise
         # ===========================================================
-        at = open_tariff_design(app, user=superuser, tariff_id='2', tab='price-matrix')
+        at = open_tariff_design_page(app, user=superuser, tariff_id='2', tab='price-matrix')
 
         # Verify
         # ===========================================================
         assert not at.exception, f'The page raised an exception! {at.exception}'
-        assert at.selectbox[0].value == 'Tariff B', 'The tariff of the address is not selected!'
+        assert tariff_selector(at).value == 'Tariff B', 'The tariff of the address is not selected!'
         assert at.query_params['tariff_id'] == ['2'], 'The tariff of the address was lost!'
         assert at.query_params['tab'] == ['price-matrix'], 'The tab of the address was lost!'
         assert not warning_text(at), 'A valid address was warned about!'
@@ -396,16 +434,16 @@ class TestTariffDesignPageSelection:
 
         # Setup
         # ===========================================================
-        at = open_tariff_design(app, user=superuser)
+        at = open_tariff_design_page(app, user=superuser)
 
         # Exercise
         # ===========================================================
-        at.selectbox[0].select('Tariff B').run()
+        tariff_selector(at).select('Tariff B').run()
 
         # Verify
         # ===========================================================
         assert not at.exception, f'The page raised an exception! {at.exception}'
-        assert at.selectbox[0].value == 'Tariff B', 'The selected tariff was lost!'
+        assert tariff_selector(at).value == 'Tariff B', 'The selected tariff was lost!'
         assert at.query_params['tariff_id'] == ['2'], 'The address was not updated!'
 
     def test_switching_tabs_updates_the_address(self, app: AppTest, superuser: stp.User) -> None:
@@ -413,7 +451,7 @@ class TestTariffDesignPageSelection:
 
         # Setup
         # ===========================================================
-        at = open_tariff_design(app, user=superuser)
+        at = open_tariff_design_page(app, user=superuser)
 
         # Exercise
         # ===========================================================
@@ -464,7 +502,7 @@ class TestTariffDesignPageSelection:
 
         # Exercise
         # ===========================================================
-        at = open_tariff_design(app, user=superuser, **query_params)
+        at = open_tariff_design_page(app, user=superuser, **query_params)
 
         # Verify
         # ===========================================================
@@ -481,7 +519,7 @@ class TestTariffDesignPageSelection:
 
         # Exercise
         # ===========================================================
-        at = open_tariff_design(app, user=superuser, tab='no-such-tab')
+        at = open_tariff_design_page(app, user=superuser, tab='no-such-tab')
 
         # Verify
         # ===========================================================

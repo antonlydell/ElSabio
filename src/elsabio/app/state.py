@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # See the LICENSE file in the project root for details.
 
-r"""The selection state of a page, carried in the address of the page.
+r"""The selection state of a page carried in the address of the page.
 
-Carrying the selection in the address rather than in the session state makes a page
-linkable, shareable and survivable across a browser refresh.
+Carrying the selection in the address rather than in the session state
+makes a page linkable, shareable and survives a browser refresh.
 """
 
 # Standard library
