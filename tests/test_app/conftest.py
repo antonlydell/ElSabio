@@ -22,12 +22,7 @@ from streamlit.testing.v1 import AppTest
 from elsabio.app import APP_PATH
 from elsabio.database import URL, SessionFactory
 from elsabio.database.models.tariff_analyzer import Tariff
-
-APP_TEST_TIMEOUT = 30
-
-# The business timezone of the app under test. It differs from the default
-# timezone of the config so that a conversion from it can be told apart.
-BUSINESS_TIMEZONE = 'America/New_York'
+from tests.config import APP_TEST_TIMEOUT, BUSINESS_TIMEZONE
 
 
 def _signed_in_user(role: stp.Role) -> stp.User:
