@@ -19,8 +19,8 @@ of the binding::
 
 The binding reads and writes the address when it is created and the change callback writes
 a change of the choice by the user. A component rendered without the key and the change
-callback of its binding will not follow the user. Any single choice component that accepts ``key`` and
-``on_change`` can be bound, e.g. ``st.selectbox``, ``st.radio``, ``st.segmented_control``,
+callback of its binding will not follow the user. Any single choice component that accepts ``key``
+and ``on_change`` can be bound, e.g. ``st.selectbox``, ``st.radio``, ``st.segmented_control``,
 ``st.pills`` and ``st.tabs``.
 """
 

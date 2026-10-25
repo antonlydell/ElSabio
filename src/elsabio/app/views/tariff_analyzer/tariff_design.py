@@ -232,8 +232,7 @@ def select_tariff(model: TariffDataFrameModel) -> int | None:
     r"""Render the view that selects the tariff to work with.
 
     The selected tariff is carried in the address of the page. An address that names
-    a tariff that does not exist is warned about, so that the user does not mistake the
-    first tariff, which is selected instead, for the one they were sent.
+    a tariff that does not exist defaults to the first tariff and a warning is issued.
 
     Parameters
     ----------
@@ -265,10 +264,8 @@ def tariff_tabs() -> TariffDesignTab:
     opens the first tab, since a wrong tab carries no risk of editing the wrong tariff.
     See :func:`elsabio.app.components.bind_query_param`.
 
-    Switching tabs reruns the page to carry the active tab in the address, so only the
-    content of the open tab is rendered. A rerun then does the work of one tab rather
-    than of every tab. Render the content of a new tab inside the ``if container.open``
-    branch of its tab.
+    Switching tabs reruns the page to carry the active tab in the address and only the
+    content of the open tab needs to be rendered.
 
     Returns
     -------
