@@ -18,6 +18,9 @@ from elsabio.app.components import (
 )
 from elsabio.database import Session
 
+# The key of the container of the sign in and register forms.
+SIGN_IN_KEY = 'sign-in-container'
+
 
 def controller(
     session: Session, client: BitwardenPasswordlessClient, is_authenticated: bool = False
@@ -38,7 +41,7 @@ def controller(
 
     st.title('ElSabio ⚡')
 
-    with st.container(border=True):
+    with st.container(border=True, key=SIGN_IN_KEY):
         if is_authenticated:
             bitwarden_register_form_existing_user(client=client, db_session=session, border=False)
             return

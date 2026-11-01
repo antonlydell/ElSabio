@@ -27,18 +27,19 @@ from streamlit.testing.v1.element_tree import Selectbox
 # Local
 from elsabio.app import APP_PATH
 from elsabio.app.components import query_param_key
+from elsabio.app.controllers.sign_in import SIGN_IN_KEY
 from elsabio.app.state import QueryParam
+from elsabio.app.views.tariff_analyzer.tariff_design import (
+    NO_TARIFFS_DEFINED,
+    TARIFF_NOT_FOUND,
+    TariffDesignTab,
+)
 from elsabio.models.tariff_analyzer import TariffDataFrameModel
 from tests.config import APP_TEST_TIMEOUT, BUSINESS_TIMEZONE
 from tests.test_app.apptest import address_value, column_timezone, switch_tab
 
 PAGE = '_pages/tariff_analyzer/tariff_design.py'
 TITLE = 'Tariff Design'
-NOT_FOUND = 'The linked tariff could not be found'
-
-# A signed in user on the Sign in page is offered to register a new passkey.
-# This enables knowing when we land on the Sign in page.
-SIGN_IN_MARKER = 'Register a new passkey'
 
 # A page router that always includes the Tariff Design page regardless of the role of the user.
 ROUTER_WITH_PAGE_ALWAYS_INCLUDED = """\
@@ -111,7 +112,7 @@ def page_rendered(at: AppTest) -> bool:
 def landed_on_sign_in(at: AppTest) -> bool:
     r"""Check if the signed in user landed on the Sign in page."""
 
-    return any(SIGN_IN_MARKER in m.value for m in at.markdown)
+    return any(c.key == SIGN_IN_KEY for c in at.container)
 
 
 def tariff_selector(at: AppTest) -> Selectbox[str]:
@@ -244,7 +245,7 @@ class TestTariffDesignPageWithoutTariffs:
         assert not at.exception, f'The page raised an exception! {at.exception}'
 
         messages = ' '.join(i.value for i in at.info)
-        assert 'No tariffs are defined yet' in messages, 'The empty state is not explained!'
+        assert NO_TARIFFS_DEFINED.strip() in messages, 'The empty state is not explained!'
         assert not at.dataframe, 'A table was rendered although there are no tariffs!'
 
 
@@ -327,7 +328,7 @@ class TestTariffDesignPageSelection:
         assert not at.exception, f'The page raised an exception! {at.exception}'
         assert tariff_selector(at).value == 'Tariff A', 'The first tariff is not selected!'
         assert address_value(at, QueryParam.TARIFF_ID) == '1', 'The address was not updated!'
-        assert NOT_FOUND not in warning_text(at), 'A plain visit was warned about!'
+        assert TARIFF_NOT_FOUND.strip() not in warning_text(at), 'A plain visit was warned about!'
 
     @pytest.mark.parametrize('tariff_id', ['999', 'abc'], ids=['non-existent', 'non-integer'])
     def test_an_unknown_tariff_is_warned_about(
@@ -342,7 +343,9 @@ class TestTariffDesignPageSelection:
         # Verify
         # ===========================================================
         assert not at.exception, f'The page raised an exception! {at.exception}'
-        assert NOT_FOUND in warning_text(at), 'The unknown tariff was not warned about!'
+        assert TARIFF_NOT_FOUND.strip() in warning_text(at), (
+            'The unknown tariff was not warned about!'
+        )
         assert tariff_selector(at).value == 'Tariff A', 'The first tariff is not selected!'
         assert address_value(at, QueryParam.TARIFF_ID) == '1', 'The address was not corrected!'
 
@@ -413,7 +416,7 @@ class TestTariffDesignPageSelection:
 
         # Exercise
         # ===========================================================
-        switch_tab(at, key=query_param_key(QueryParam.TAB), label='Palette')
+        switch_tab(at, key=query_param_key(QueryParam.TAB), label=TariffDesignTab.PALETTE.label)
 
         # Verify
         # ===========================================================
@@ -423,11 +426,11 @@ class TestTariffDesignPageSelection:
         )
 
         messages = ' '.join(i.value for i in at.info)
-        assert 'The component types that the tariff may use' in messages, 'The tab is not open!'
+        assert TariffDesignTab.PALETTE.description in messages, 'The tab is not open!'
 
         # Exercise
         # ===========================================================
-        switch_tab(at, key=query_param_key(QueryParam.TAB), label='Details')
+        switch_tab(at, key=query_param_key(QueryParam.TAB), label=TariffDesignTab.DETAILS.label)
 
         # Verify
         # ===========================================================
@@ -439,12 +442,8 @@ class TestTariffDesignPageSelection:
     @pytest.mark.parametrize(
         ('query_params', 'open_tab', 'closed_tab'),
         [
-            ({}, 'The currency, validity period', 'The prices of one component type'),
-            (
-                {'tab': 'price-matrix'},
-                'The prices of one component type',
-                'The currency, validity period',
-            ),
+            ({}, TariffDesignTab.DETAILS, TariffDesignTab.PRICE_MATRIX),
+            ({'tab': 'price-matrix'}, TariffDesignTab.PRICE_MATRIX, TariffDesignTab.DETAILS),
         ],
         ids=['default-tab', 'tab-of-the-address'],
     )
@@ -453,8 +452,8 @@ class TestTariffDesignPageSelection:
         app: AppTest,
         superuser: stp.User,
         query_params: dict[str, str],
-        open_tab: str,
-        closed_tab: str,
+        open_tab: TariffDesignTab,
+        closed_tab: TariffDesignTab,
     ) -> None:
         r"""Test that the content of a tab is only rendered while the tab is open.
 
@@ -471,8 +470,8 @@ class TestTariffDesignPageSelection:
         assert not at.exception, f'The page raised an exception! {at.exception}'
 
         messages = ' '.join(i.value for i in at.info)
-        assert open_tab in messages, 'The open tab was not rendered!'
-        assert closed_tab not in messages, 'A closed tab was rendered!'
+        assert open_tab.description in messages, 'The open tab was not rendered!'
+        assert closed_tab.description not in messages, 'A closed tab was rendered!'
 
     def test_an_unknown_tab_falls_back_to_the_first_tab(
         self, app: AppTest, superuser: stp.User
