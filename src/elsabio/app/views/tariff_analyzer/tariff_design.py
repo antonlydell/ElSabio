@@ -21,34 +21,34 @@ from elsabio.app.state import QueryParam
 from elsabio.models.tariff_analyzer import TariffDataFrameModel
 
 EXPLAINER = """\
-A **Tariff** is a complete price sheet for grid usage, in one currency and bounded by a validity
-period. Everything below belongs to one tariff.
+A **Tariff** describes the prices that grid customers will pay for grid usage during its validity
+period. It is composed of the parts described below.
 
-A **Tariff Cost Group** is a named part of a tariff that carries one set of prices. **Customer
-Groups** — categories of facilities that share contract characteristics such as fuse size or
-subscribed power — are assigned to the cost groups, and each customer group belongs to at most one
-cost group of a tariff. Assigning one to two cost groups of the same tariff would count its
-facilities twice and is therefore forbidden.
+A customer has a facility connected to the grid and a contract with the grid company that governs
+how the facility can use the grid. **Customer Groups** are categories of facilities that share
+contract characteristics such as fuse size or subscribed power. Customer groups are the basis for
+how the prices of a tariff are set.
 
-A **Tariff Component Type** names what is charged for and how it is computed — a fixed monthly fee,
-a price per kWh, a charge for exceeding the subscribed power. Types are defined once for the whole
-installation. Each tariff selects the types it may use, its **Component Type Palette**, so that
-pricing is done from a relevant shortlist rather than from every type in the installation.
+A **Tariff Cost Group** is a named part of a tariff that carries one set of prices. A customer
+group belongs to at most one cost group in a tariff to avoid double counting. Several customer
+groups can belong to the same cost group.
 
-A **Tariff Component** is the price itself: one component type priced within one cost group,
-together with the months it is valid and its overshoot limit. It is the leaf that a calculation
-multiplies.
+A **Tariff Component Type** describes what is charged for and how it is computed. For example a
+fixed monthly fee, a price per kWh or a charge for exceeding the subscribed power. Component types
+are shared by all tariffs. Each tariff selects the types it may use, which forms its **Component
+Type Palette**.
+
+A **Tariff Component** is the price of one component type within one cost group.
 """
 
 NO_TARIFFS_DEFINED = """\
-No tariffs are defined yet. A tariff is the price sheet that everything else on this page hangs
-off, so create one to get started. Until then there is nothing to design.
+No tariffs are defined yet. Create one to start designing its content.
 """
 
 TARIFF_NOT_FOUND = """\
 The linked tariff could not be found. It may have been deleted, or the address of the page may
-have been edited. The first tariff is selected instead, so check that it is the one you want to
-work with.
+have been edited. The first tariff is selected as a fallback. Check that it is the one you want
+to work with.
 """
 
 
