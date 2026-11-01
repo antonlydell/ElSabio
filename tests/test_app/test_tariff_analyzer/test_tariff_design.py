@@ -14,7 +14,6 @@ does not gate it, to prove the guard of the page itself.
 """
 
 # Standard library
-import json
 from datetime import datetime
 from pathlib import Path
 
@@ -22,8 +21,6 @@ from pathlib import Path
 import pandas as pd
 import pytest
 import streamlit_passwordless as stp
-from streamlit.proto.WidgetStates_pb2 import WidgetState
-from streamlit.runtime.state.common import user_key_from_element_id
 from streamlit.testing.v1 import AppTest
 from streamlit.testing.v1.element_tree import Selectbox
 
@@ -33,6 +30,7 @@ from elsabio.app.components import query_param_key
 from elsabio.app.state import QueryParam
 from elsabio.models.tariff_analyzer import TariffDataFrameModel
 from tests.config import APP_TEST_TIMEOUT, BUSINESS_TIMEZONE
+from tests.test_app.apptest import address_value, column_timezone, switch_tab
 
 PAGE = '_pages/tariff_analyzer/tariff_design.py'
 TITLE = 'Tariff Design'
@@ -114,47 +112,6 @@ def landed_on_sign_in(at: AppTest) -> bool:
     r"""Check if the signed in user landed on the Sign in page."""
 
     return any(SIGN_IN_MARKER in m.value for m in at.markdown)
-
-
-def switch_tab(at: AppTest, label: str) -> AppTest:
-    r"""Switch to the tab of the Tariff Design page with `label` the way the browser does.
-
-    AppTest has no way to click a tab bar made by ``st.tabs``. Instead, this helper sends
-    the message that the browser sends when a user opens a tab: a widget state that holds
-    the new value of the tab bar. Streamlit then treats it as a real click. It runs the
-    change callback of the tab bar and reruns the page.
-
-    Parameters
-    ----------
-    at : streamlit.testing.v1.AppTest
-        The app test of the web app after the Tariff Design page has been run.
-
-    label : str
-        The label of the tab to switch to.
-
-    Returns
-    -------
-    streamlit.testing.v1.AppTest
-        `at` after the page has been run again.
-    """
-
-    # The widget id of the tab bar ends with its key, but its hash cannot be computed up front.
-    key = query_param_key(QueryParam.TAB)
-    tab_bar_id = next(
-        (
-            node.proto.tab_container.id
-            for node in at.main
-            if node.type == 'tab_container'
-            and user_key_from_element_id(node.proto.tab_container.id) == key
-        ),
-        None,
-    )
-    assert tab_bar_id is not None, f'The page did not render the tab bar with key {key!r}!'
-
-    widget_states = at.main.root.get_widget_states()
-    widget_states.widgets.append(WidgetState(id=tab_bar_id, string_value=label))
-
-    return at._run(widget_states)
 
 
 def tariff_selector(at: AppTest) -> Selectbox[str]:
@@ -326,8 +283,7 @@ class TestTariffList:
             'last_edited_at column is not in UTC timezone!'
         )
 
-        column_config = json.loads(at.dataframe[0].proto.columns)
-        timezone = column_config[TariffDataFrameModel.c_last_edited_at]['type_config']['timezone']
+        timezone = column_timezone(at.dataframe[0], column=TariffDataFrameModel.c_last_edited_at)
 
         assert timezone == BUSINESS_TIMEZONE, (
             'last_edited_at column is not shown in the business timezone!'
@@ -370,7 +326,7 @@ class TestTariffDesignPageSelection:
         # ===========================================================
         assert not at.exception, f'The page raised an exception! {at.exception}'
         assert tariff_selector(at).value == 'Tariff A', 'The first tariff is not selected!'
-        assert at.query_params['tariff_id'] == ['1'], 'The address was not updated!'
+        assert address_value(at, QueryParam.TARIFF_ID) == '1', 'The address was not updated!'
         assert NOT_FOUND not in warning_text(at), 'A plain visit was warned about!'
 
     @pytest.mark.parametrize('tariff_id', ['999', 'abc'], ids=['non-existent', 'non-integer'])
@@ -388,7 +344,7 @@ class TestTariffDesignPageSelection:
         assert not at.exception, f'The page raised an exception! {at.exception}'
         assert NOT_FOUND in warning_text(at), 'The unknown tariff was not warned about!'
         assert tariff_selector(at).value == 'Tariff A', 'The first tariff is not selected!'
-        assert at.query_params['tariff_id'] == ['1'], 'The address was not corrected!'
+        assert address_value(at, QueryParam.TARIFF_ID) == '1', 'The address was not corrected!'
 
     def test_a_tariff_id_with_a_leading_zero_selects_the_tariff(
         self, app: AppTest, superuser: stp.User
@@ -407,7 +363,7 @@ class TestTariffDesignPageSelection:
         # ===========================================================
         assert not at.exception, f'The page raised an exception! {at.exception}'
         assert tariff_selector(at).value == 'Tariff B', 'The tariff of the address is not selected!'
-        assert at.query_params['tariff_id'] == ['2'], 'The address was not corrected!'
+        assert address_value(at, QueryParam.TARIFF_ID) == '2', 'The address was not corrected!'
         assert not warning_text(at), 'A known tariff was warned about!'
 
     def test_the_tariff_and_tab_of_the_address_are_selected(
@@ -423,8 +379,10 @@ class TestTariffDesignPageSelection:
         # ===========================================================
         assert not at.exception, f'The page raised an exception! {at.exception}'
         assert tariff_selector(at).value == 'Tariff B', 'The tariff of the address is not selected!'
-        assert at.query_params['tariff_id'] == ['2'], 'The tariff of the address was lost!'
-        assert at.query_params['tab'] == ['price-matrix'], 'The tab of the address was lost!'
+        assert address_value(at, QueryParam.TARIFF_ID) == '2', 'The tariff of the address was lost!'
+        assert address_value(at, QueryParam.TAB) == 'price-matrix', (
+            'The tab of the address was lost!'
+        )
         assert not warning_text(at), 'A valid address was warned about!'
 
     def test_changing_the_tariff_updates_the_address(
@@ -444,7 +402,7 @@ class TestTariffDesignPageSelection:
         # ===========================================================
         assert not at.exception, f'The page raised an exception! {at.exception}'
         assert tariff_selector(at).value == 'Tariff B', 'The selected tariff was lost!'
-        assert at.query_params['tariff_id'] == ['2'], 'The address was not updated!'
+        assert address_value(at, QueryParam.TARIFF_ID) == '2', 'The address was not updated!'
 
     def test_switching_tabs_updates_the_address(self, app: AppTest, superuser: stp.User) -> None:
         r"""Test that switching to another tab and back carries the open tab in the address."""
@@ -455,24 +413,28 @@ class TestTariffDesignPageSelection:
 
         # Exercise
         # ===========================================================
-        switch_tab(at, label='Palette')
+        switch_tab(at, key=query_param_key(QueryParam.TAB), label='Palette')
 
         # Verify
         # ===========================================================
         assert not at.exception, f'The page raised an exception! {at.exception}'
-        assert at.query_params['tab'] == ['palette'], 'The address does not name the new tab!'
+        assert address_value(at, QueryParam.TAB) == 'palette', (
+            'The address does not name the new tab!'
+        )
 
         messages = ' '.join(i.value for i in at.info)
         assert 'The component types that the tariff may use' in messages, 'The tab is not open!'
 
         # Exercise
         # ===========================================================
-        switch_tab(at, label='Details')
+        switch_tab(at, key=query_param_key(QueryParam.TAB), label='Details')
 
         # Verify
         # ===========================================================
         assert not at.exception, f'The page raised an exception! {at.exception}'
-        assert at.query_params['tab'] == ['details'], 'The address does not name the first tab!'
+        assert address_value(at, QueryParam.TAB) == 'details', (
+            'The address does not name the first tab!'
+        )
 
     @pytest.mark.parametrize(
         ('query_params', 'open_tab', 'closed_tab'),
@@ -524,5 +486,5 @@ class TestTariffDesignPageSelection:
         # Verify
         # ===========================================================
         assert not at.exception, f'The page raised an exception! {at.exception}'
-        assert at.query_params['tab'] == ['details'], 'The first tab is not active!'
+        assert address_value(at, QueryParam.TAB) == 'details', 'The first tab is not active!'
         assert not warning_text(at), 'An unknown tab was warned about!'
